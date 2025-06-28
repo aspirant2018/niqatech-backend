@@ -12,3 +12,8 @@ A speech-to-text application that allows teachers to verbally input grades, whic
 - Long-term: Enhance the app with additional features, improve accuracy, and make it widely available for educators.
 - Niqatech
 
+## 📝 To-do
+- [ ] Create a simple backend app
+- [ ] Create a simple Frontend app
+- [ ] Connect the frontend React app to backend API endpoints
+- [ ] Auth2 Google
