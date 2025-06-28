@@ -1,0 +1,14 @@
+# Root
+.env
+*.env
+*.log
+__pycache__/
+.DS_Store
+
+# Backend
+/backend/venv/
+backend/__pycache__/
+backend/**/*.pyc
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.env
