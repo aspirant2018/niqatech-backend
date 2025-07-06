@@ -52,16 +52,21 @@ async def google_auth(token_data: TokenData):
     logger.info("Received token for authentication")
     try:
         # Verify the token
-        id_info = id_token.verify_oauth2_token(
-            token_data.id_token,
-            grequests.Request(),
-            GOOGLE_CLIENT_ID
-        )
+        #id_info = id_token.verify_oauth2_token(
+        #    token_data.id_token,
+        #    grequests.Request(),
+        #    GOOGLE_CLIENT_ID
+        #)
 
         # Extract user info
-        user_id = id_info['sub']
-        email   = id_info['email']
-        name    = id_info.get('name')
+        #user_id = id_info['sub']
+        #email   = id_info['email']
+        #name    = id_info.get('name')
+
+        # For demonstration, we'll mock the user info
+        user_id = 'rahim707'  
+        email   = 'mazouzceminfo@gmail.com' 
+        name    = 'rahim'  
 
         # In a real app: check/create user in DB, generate your own JWT
         return {
