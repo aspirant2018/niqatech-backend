@@ -2,7 +2,7 @@
 # HTTPException: for returning errors to the client.
 # BaseModel: for validating request bodies (Pydantic).
 # id_token and grequests: from Google's Python SDK, to verify tokens.
-
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from google.oauth2 import id_token
@@ -25,6 +25,15 @@ logger = logging.getLogger("__main.py__")
 
 
 app = FastAPI()
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # React dev server
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
+)
 
 # Replace with your actual Google client ID
 GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID"
