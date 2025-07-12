@@ -21,7 +21,7 @@ A speech-to-text application that allows teachers to verbally input grades, whic
 2. **Create a and activate virtual envirement venv**
    ```bash
    python3 -m venv venv
-   source venv/bin/activate
+   source venv/bin/activate```
 
 4. **Install dependencies**
     ```bash
@@ -29,7 +29,6 @@ A speech-to-text application that allows teachers to verbally input grades, whic
     pip install -r requirements.txt
 
 ## Run the Backend Application
-    In terminal run 
     ```bash
     python3 app/main.py
 
