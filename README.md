@@ -32,10 +32,20 @@ A speech-to-text application that allows teachers to verbally input grades, whic
 1. it will run on port 8000 
     ```bash
     python3 app/main.py
-    
+
     running on http://localhost:8000 
-## 📝 To-do
-- [ ] Create a simple backend app
-- [ ] Create a simple Frontend app
-- [ ] Connect the frontend React app to backend API endpoints
-- [ ] Auth2 Google
+
+## ✅ How to Test the Endpoints
+
+FastAPI provides an interactive API documentation where you can explore and test all available endpoints easily.
+
+### ▶️ Step-by-Step
+
+1. Make sure the backend server is running:
+
+   ```bash
+   python3 app/main.py
+
+2. Open your browser to Browse all available endpoints:
+   ```bash
+   http://localhost:8000/docs
