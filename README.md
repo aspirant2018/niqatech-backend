@@ -12,11 +12,15 @@ A speech-to-text application that allows teachers to verbally input grades, whic
 - Long-term: Enhance the app with additional features, improve accuracy, and make it widely available for educators.
 - Niqatech
 
-## How to install
-- Clone the the reposetory
-- Create a virtual envirement venv
-- Activate the virtual envirement if you are using Linux source venv/bin/activate
-- in Terminal run pip install -r requirements.txt
+## 🛠️ How to Install
+1. **Clone the repository**  
+   ```bash
+   git clone <your-repo-url>
+   cd <repo-directory>
+
+2. Create a virtual envirement venv
+3. Activate the virtual envirement if you are using Linux source venv/bin/activate
+4. in Terminal run pip install -r requirements.txt
 
 ## Run the Backend Application
 - python3 app/main.py
