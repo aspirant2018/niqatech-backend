@@ -1,14 +1,5 @@
-# Root
-.env
-*.env
-*.log
+venv/
 __pycache__/
-.DS_Store
-
-# Backend
-/backend/venv/
-backend/__pycache__/
-backend/**/*.pyc
-backend/.pytest_cache/
-backend/.mypy_cache/
-backend/.env
+*.pyc
+.env
+client_secret_*.json
