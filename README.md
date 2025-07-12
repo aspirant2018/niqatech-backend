@@ -15,8 +15,8 @@ A speech-to-text application that allows teachers to verbally input grades, whic
 ## 🛠️ How to Install
 1. **Clone the repository**  
    ```bash
-   git clone <your-repo-url>
-   cd <repo-directory>
+   git clone https://github.com/aspirant2018/niqatech-backend.git
+   cd niqatech-backend
 
 2. **Create a and activate virtual envirement venv**
    ```bash
@@ -32,9 +32,6 @@ A speech-to-text application that allows teachers to verbally input grades, whic
 1. 
     ```bash
     python3 app/main.py
-
-
-
 ## 📝 To-do
 - [ ] Create a simple backend app
 - [ ] Create a simple Frontend app
