@@ -14,6 +14,8 @@ import logging
 from logging.config import dictConfig
 from logging_config import LOGGING_CONFIG
 
+from models import TokenData, ProfileData
+
 
 
 
@@ -38,8 +40,6 @@ app.add_middleware(
 # Replace with your actual Google client ID
 GOOGLE_CLIENT_ID = "245808035770-5e2rf7c0a5kqcfd6d7q4h9r0car8mttc.apps.googleusercontent.com"
 
-class TokenData(BaseModel):
-    token: str
 
 
 @app.get("/")
@@ -49,7 +49,7 @@ async def index():
 
 @app.post("/api/auth/google")
 async def google_auth(token_data: TokenData):
-    logger.info("Received token for authentication")
+    logger.info("Received token for React")
     logger.info(f"Token data: {token_data}")
 
     try:
@@ -65,9 +65,9 @@ async def google_auth(token_data: TokenData):
         email   = id_info['email']
         name    = id_info.get('name')
 
-
-
+        # Check if the user is already in your database
         # In a real app: check/create user in DB, generate your own JWT
+        
         return {
             "user_id": user_id,
             "email": email,
@@ -77,7 +77,20 @@ async def google_auth(token_data: TokenData):
 
     except ValueError:
         raise HTTPException(status_code=401, detail="Invalid ID token")
-    
+
+
+
+
+
+@app.post("/api/auth/complete_profile")
+async def complete_profile(data: ProfileData):
+    logger.info("Completing user profile")
+    logger.info(f"Profile data: {data}")
+
+    return {
+        "message": "Profile completed successfully",
+        "profile_data": data
+    }
 
 if __name__ == "__main__":
     logger.info("Starting FastAPI application")
