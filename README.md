@@ -29,6 +29,7 @@ A speech-to-text application that allows teachers to verbally input grades, whic
     pip install -r requirements.txt
 
 ## Run the Backend Application
+1. 
     ```bash
     python3 app/main.py
 
