@@ -18,19 +18,19 @@ A speech-to-text application that allows teachers to verbally input grades, whic
    git clone <your-repo-url>
    cd <repo-directory>
 
-2. Create a and activate virtual envirement venv
+2. **Create a and activate virtual envirement venv**
    ```bash
    python3 -m venv venv
    source venv/bin/activate
 
-4. Install dependencies
+4. **Install dependencies**
     ```bash
     # in Terminal run
     pip install -r requirements.txt
 
 ## Run the Backend Application
+    In terminal run 
     ```bash
-    # In terminal run
     python3 app/main.py
 
 
