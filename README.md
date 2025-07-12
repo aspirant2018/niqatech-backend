@@ -29,9 +29,11 @@ A speech-to-text application that allows teachers to verbally input grades, whic
     pip install -r requirements.txt
 
 ## Run the Backend Application
-1. 
+1. it will run on port 8000 
     ```bash
     python3 app/main.py
+    
+    running on http://localhost:8000 
 ## 📝 To-do
 - [ ] Create a simple backend app
 - [ ] Create a simple Frontend app
