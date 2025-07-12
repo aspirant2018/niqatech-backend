@@ -36,10 +36,10 @@ app.add_middleware(
 )
 
 # Replace with your actual Google client ID
-GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID"
+GOOGLE_CLIENT_ID = "245808035770-5e2rf7c0a5kqcfd6d7q4h9r0car8mttc.apps.googleusercontent.com"
 
 class TokenData(BaseModel):
-    id_token: str
+    token: str
 
 
 @app.get("/")
@@ -50,23 +50,22 @@ async def index():
 @app.post("/api/auth/google")
 async def google_auth(token_data: TokenData):
     logger.info("Received token for authentication")
+    logger.info(f"Token data: {token_data}")
+
     try:
         # Verify the token
-        #id_info = id_token.verify_oauth2_token(
-        #    token_data.id_token,
-        #    grequests.Request(),
-        #    GOOGLE_CLIENT_ID
-        #)
+        id_info = id_token.verify_oauth2_token(
+            token_data.token,
+            grequests.Request(),
+            GOOGLE_CLIENT_ID
+        )
 
         # Extract user info
-        #user_id = id_info['sub']
-        #email   = id_info['email']
-        #name    = id_info.get('name')
+        user_id = id_info['sub']
+        email   = id_info['email']
+        name    = id_info.get('name')
 
-        # For demonstration, we'll mock the user info
-        user_id = 'rahim707'  
-        email   = 'mazouzceminfo@gmail.com' 
-        name    = 'rahim'  
+
 
         # In a real app: check/create user in DB, generate your own JWT
         return {
