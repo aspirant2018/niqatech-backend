@@ -3,10 +3,7 @@
 # BaseModel: for validating request bodies (Pydantic).
 # id_token and grequests: from Google's Python SDK, to verify tokens.
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from google.oauth2 import id_token
-from google.auth.transport import requests as grequests
+from fastapi import FastAPI
 import uvicorn
 
 # logging 
@@ -14,11 +11,7 @@ import logging
 from logging.config import dictConfig
 from logging_config import LOGGING_CONFIG
 
-from models import TokenData, ProfileData
-
-
-
-
+from routers import auth, users, status
 
 
 
@@ -37,60 +30,11 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
-# Replace with your actual Google client ID
-GOOGLE_CLIENT_ID = "245808035770-5e2rf7c0a5kqcfd6d7q4h9r0car8mttc.apps.googleusercontent.com"
+app.include_router(status.router)
+app.include_router(auth.router)
+app.include_router(users.router)
 
 
-
-@app.get("/")
-async def index():
-    return {"message": "Welcome to the FastAPI Google Auth Example"}
-
-
-@app.post("/api/auth/google")
-async def google_auth(token_data: TokenData):
-    logger.info("Received token for React")
-    logger.info(f"Token data: {token_data}")
-
-    try:
-        # Verify the token
-        id_info = id_token.verify_oauth2_token(
-            token_data.token,
-            grequests.Request(),
-            GOOGLE_CLIENT_ID
-        )
-
-        # Extract user info
-        user_id = id_info['sub']
-        email   = id_info['email']
-        name    = id_info.get('name')
-
-        # Check if the user is already in your database
-        # In a real app: check/create user in DB, generate your own JWT
-        
-        return {
-            "user_id": user_id,
-            "email": email,
-            "name": name,
-            "message": "User authenticated successfully"
-        }
-
-    except ValueError:
-        raise HTTPException(status_code=401, detail="Invalid ID token")
-
-
-
-
-
-@app.post("/api/auth/complete_profile")
-async def complete_profile(data: ProfileData):
-    logger.info("Completing user profile")
-    logger.info(f"Profile data: {data}")
-
-    return {
-        "message": "Profile completed successfully",
-        "profile_data": data
-    }
 
 if __name__ == "__main__":
     logger.info("Starting FastAPI application")
