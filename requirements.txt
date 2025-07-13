@@ -74,3 +74,4 @@ websockets==15.0.1
 xxhash==3.5.0
 yarl==1.20.1
 google-auth
+python-jose
