@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from models import  ProfileData
+from models.models import  ProfileData
 import logging
 from logging.config import dictConfig
 from config import LOGGING_CONFIG
@@ -17,8 +17,11 @@ router = APIRouter(
     responses={404: {"description": "Not found"}}
 )
 
-@router.put("/complete_profile")
+@router.put("/complete_profile",summary="Complete user profile")
 async def complete_profile(data: ProfileData):
+    """
+    Endpoint to complete user profile.
+    """
 
     logger.info("Completing user profile")
     logger.info(f"Profile data: {data}")

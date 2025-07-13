@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from models import TokenData
+from models.models import TokenData
 from fastapi import  HTTPException
 from google.oauth2 import id_token
 from google.auth.transport import requests as grequests
