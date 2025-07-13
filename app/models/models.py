@@ -1,15 +1,9 @@
-from pydantic import BaseModel
+'''
+Usually refer to data structures that represent database tables or entities.
 
+In ORMs (like SQLAlchemy, Django ORM), models define the shape of your database records — their fields, types, relations.
 
+Models are tied to persistence, meaning they map to how data is stored and retrieved.
 
-class TokenData(BaseModel):
-    token: str
-
-
-class ProfileData(BaseModel):
-    name: str
-    wilaya: str
-    school: str
-    subject: str
-    level: str
-    subject: str
+Example: A User model with fields like id, email, hashed_password, stored in a database.
+'''

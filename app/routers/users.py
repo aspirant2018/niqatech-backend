@@ -1,5 +1,6 @@
 from fastapi import APIRouter
-from models.models import  ProfileData
+# from models.models import  ProfileData
+from schemas.schemas import ProfileData
 import logging
 from logging.config import dictConfig
 from config import LOGGING_CONFIG

@@ -1,5 +1,6 @@
 from fastapi import APIRouter
-from models.models import TokenData
+# from models.models import TokenData
+from schemas.schemas import TokenData
 from fastapi import  HTTPException
 from google.oauth2 import id_token
 from google.auth.transport import requests as grequests
@@ -28,10 +29,10 @@ router = APIRouter(
 @router.post("/google")
 async def google_auth(token_data: TokenData):
     """
-    Endpoint to authenticate with google using an Oauth Token.
+    Authenticate user via Google OAuth token.
     """
-    logger.info("Received token for React")
-    logger.info(f"Token data: {token_data}")
+
+    logger.info("Google token received from frontend.")
 
     try:
         # Verify the token
