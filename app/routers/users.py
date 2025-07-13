@@ -2,13 +2,10 @@ from fastapi import APIRouter
 # from models.models import  ProfileData
 from schemas.schemas import ProfileData
 import logging
-from logging.config import dictConfig
-from config import LOGGING_CONFIG
 
 
 
 
-dictConfig(LOGGING_CONFIG) 
 logger = logging.getLogger("__routers/users.py__")
 
 

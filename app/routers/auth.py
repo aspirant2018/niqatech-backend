@@ -7,15 +7,15 @@ from google.auth.transport import requests as grequests
 
 # logging 
 import logging
-from logging.config import dictConfig
-from logging_config import LOGGING_CONFIG
+
+import os
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 
 
-dictConfig(LOGGING_CONFIG) 
 logger = logging.getLogger("__routers/auth.py__")
 
-
-GOOGLE_CLIENT_ID = "245808035770-5e2rf7c0a5kqcfd6d7q4h9r0car8mttc.apps.googleusercontent.com"
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "245808035770-5e2rf7c0a5kqcfd6d7q4h9r0car8mttc.apps.googleusercontent.com")
 
 
 

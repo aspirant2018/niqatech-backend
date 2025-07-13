@@ -8,14 +8,11 @@ import uvicorn
 
 # logging 
 import logging
-from logging.config import dictConfig
-from logging_config import LOGGING_CONFIG
 
 from routers import auth, users, status
 
 
 
-dictConfig(LOGGING_CONFIG) 
 logger = logging.getLogger("__main.py__")
 
 
