@@ -43,6 +43,8 @@ def generate_jwt_token(user_id: str):
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return token
 
+
+# localhost:8000/auth/google
 @router.post("/google")
 async def google_auth(token_data: TokenData):
     """
@@ -73,6 +75,14 @@ async def google_auth(token_data: TokenData):
         # In a real app: check/create user in DB, generate your own JWT
 
         logger.info(f"App jwt token: {app_jwt_token}")
+
+        logger.info({
+            "user": user_id,
+            "email": email,
+            "name": name,
+            "message": "User authenticated successfully",
+            "jwt_token": app_jwt_token
+            })
         
         return {
             "user_id": user_id,
