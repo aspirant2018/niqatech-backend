@@ -44,8 +44,12 @@ FastAPI provides an interactive API documentation where you can explore and test
 1. Make sure the backend server is running:
 
    ```bash
-   python3 app/main.py
+   python3 main.py
+2. Make sur to Create a database:
 
-2. Open your browser to Browse all available endpoints:
+   ```bash
+   python3 database/create_db.py 
+
+3. Open your browser to Browse all available endpoints:
    ```bash
    http://localhost:8000/docs
