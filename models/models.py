@@ -34,16 +34,3 @@ class User(Base):
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, first_name={self.first_name}, last_name={self.last_name})>"
     
-
-my_user = User(
-    id=1,
-    email="rahim@gmail.com",
-    first_name="Rahim",
-    last_name="Khan",
-    school_name="Niqatech Academy",
-    academic_level="higher",
-    city="Karachi",
-    subject="math"
-    )
-
-print(my_user)

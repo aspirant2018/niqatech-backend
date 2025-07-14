@@ -1,15 +1,12 @@
-from fastapi import APIRouter
-# from models.models import TokenData
+from google.auth.transport import requests as grequests
+from database.database import SessionLocal, User
+from fastapi import APIRouter, Depends
 from schemas.schemas import TokenData
 from fastapi import  HTTPException
 from google.oauth2 import id_token
-from google.auth.transport import requests as grequests
+from sqlalchemy.orm import Session
 from jose import jwt
-from models.models import User
-
-# logging 
 import logging
-
 import os
 
 
@@ -25,6 +22,12 @@ SECRET_KEY = "1234"
 ALGORITHM = "HS256"
 
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 router = APIRouter(
     prefix="/auth",
@@ -47,7 +50,7 @@ def generate_jwt_token(user_id: str):
 
 # localhost:8000/auth/google
 @router.post("/google")
-async def google_auth(token_data: TokenData):
+async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
     """
     Authenticate user via Google OAuth token.
     """
@@ -62,36 +65,30 @@ async def google_auth(token_data: TokenData):
             GOOGLE_CLIENT_ID
         )
 
-        
         # Extract user info
         user_id = id_info['sub']
         email   = id_info['email']
         name    = id_info.get('name')
 
+        
         app_jwt_token = generate_jwt_token(user_id)
+        logger.info(f"JWT token generated: {app_jwt_token}")
 
-    
+        user = db.query(User).filter(User.id == user_id).first()
+        logger.info(f"The user retrieved from the database: {user}")
+
         # Check if the user is already in your database
-        if user_id not in database['users']:
-
+        if user is None:
+            logger.info(f"User with ID {user_id} not found in the database. Creating a new user.")
             return {
-                "message": "User not found in the database. Please register first.",
+                "message": "User first login. Please complete your infomrations.",
                 "email": email,
                 "is_profile_complete": False,
-                "jwt_token": None
+                "jwt_token": app_jwt_token
                 }
         
-        # In a real app: check/create user in DB, generate your own JWT
-
-        logger.info(f"App jwt token: {app_jwt_token}")
-
-        logger.info({
-            "user": user_id,
-            "email": email,
-            "name": name,
-            "message": "User authenticated successfully",
-            "jwt_token": app_jwt_token
-            })
+        logger.info(f"User with ID {user_id} found in the database.")
+        
         
         return {
             "user_id": user_id,

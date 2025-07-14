@@ -13,9 +13,11 @@ class TokenData(BaseModel):
 
 
 class ProfileData(BaseModel):
-    name: str
-    wilaya: str
-    school: str
+    email: str
+    first_name: str
+    last_name: str
+    school_name: str
+    academic_level: str
+    city: str
     subject: str
-    level: str
-    subject: str
+
