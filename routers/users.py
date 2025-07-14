@@ -43,12 +43,12 @@ router = APIRouter(
 
 @router.post("/register",summary="Register a new user")
 async def register(data: ProfileData, current_user=Depends(get_current_user)):
-    """
-    Endpoint to register a new user.
-    """
+    """ Endpoint to register a new user."""
 
     logger.info("Registration data received from frontend.")
     logger.info(f"Current user ID: {current_user}")
     logger.info(f"Profile data: {data}")
+
+    # Here we Insert the user into the database
 
     return {"message": "success"}

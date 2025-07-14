@@ -23,8 +23,6 @@ ALGORITHM = "HS256"
 
 
 
-
-
 def get_db():
     db = SessionLocal()
     try:
@@ -71,7 +69,6 @@ async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
         # Extract user info
         user_id = id_info['sub']
         email   = id_info['email']
-        #name    = id_info.get('name')
 
         
         app_jwt_token = generate_jwt_token(user_id)
