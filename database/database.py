@@ -22,11 +22,16 @@ class AcademicLevelEnum(enum.Enum):
     secondary = "secondary"
     higher = "higher"
 
+class Role(enum.Enum):
+    admin = "admin",
+    user = "user",
+
 class User(Base):
     __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True)
     email = Column(String, unique=True, nullable=False)
+    #role = Column(Enum(Role), nullable=False)  # Added role field
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
     school_name = Column(String, nullable=False)
