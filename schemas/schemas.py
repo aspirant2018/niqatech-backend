@@ -1,6 +1,12 @@
 from pydantic import BaseModel
+import enum
 
 
+# Enums
+class AcademicLevelEnum(enum.Enum):
+    primary = "primary"
+    secondary = "secondary"
+    higher = "higher"
 
 class TokenData(BaseModel):
     token: str

@@ -5,6 +5,7 @@ from fastapi import  HTTPException
 from google.oauth2 import id_token
 from google.auth.transport import requests as grequests
 from jose import jwt
+from models.models import User
 
 # logging 
 import logging
@@ -69,9 +70,17 @@ async def google_auth(token_data: TokenData):
 
         app_jwt_token = generate_jwt_token(user_id)
 
-        
-
+    
         # Check if the user is already in your database
+        if user_id not in database['users']:
+
+            return {
+                "message": "User not found in the database. Please register first.",
+                "email": email,
+                "is_profile_complete": False,
+                "jwt_token": None
+                }
+        
         # In a real app: check/create user in DB, generate your own JWT
 
         logger.info(f"App jwt token: {app_jwt_token}")

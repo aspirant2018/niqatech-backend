@@ -6,8 +6,9 @@ import logging
 
 
 
-logger = logging.getLogger("__routers/users.py__")
 
+
+logger = logging.getLogger("__routers/users.py__")
 
 router = APIRouter(
     prefix="/user",
