@@ -21,3 +21,10 @@ class ProfileData(BaseModel):
     city: str
     subject: str
 
+
+class ItemResponse(BaseModel):
+    message: str
+    user_id: str
+    email: str
+    is_profile_complete: bool
+    jwt_token: str
