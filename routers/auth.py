@@ -1,7 +1,7 @@
 from google.auth.transport import requests as grequests
 from database.database import SessionLocal, User
 from fastapi import APIRouter, Depends
-from schemas.schemas import TokenData
+from schemas.schemas import TokenData, ItemResponse
 from fastapi import  HTTPException
 from google.oauth2 import id_token
 from sqlalchemy.orm import Session
@@ -20,6 +20,9 @@ logger = logging.getLogger("__routers/auth.py__")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "245808035770-5e2rf7c0a5kqcfd6d7q4h9r0car8mttc.apps.googleusercontent.com")
 SECRET_KEY = "1234"
 ALGORITHM = "HS256"
+
+
+
 
 
 def get_db():
@@ -49,7 +52,7 @@ def generate_jwt_token(user_id: str):
 
 
 # localhost:8000/auth/google
-@router.post("/google")
+@router.post("/google", response_model=ItemResponse)
 async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
     """
     Authenticate user via Google OAuth token.
@@ -68,7 +71,7 @@ async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
         # Extract user info
         user_id = id_info['sub']
         email   = id_info['email']
-        name    = id_info.get('name')
+        #name    = id_info.get('name')
 
         
         app_jwt_token = generate_jwt_token(user_id)
@@ -79,22 +82,25 @@ async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
 
         # Check if the user is already in your database
         if user is None:
+
             logger.info(f"User with ID {user_id} not found in the database. Creating a new user.")
-            return {
+            reponse = {
                 "message": "User first login. Please complete your infomrations.",
+                "user_id": user_id,
                 "email": email,
                 "is_profile_complete": False,
                 "jwt_token": app_jwt_token
                 }
         
+            return reponse 
+        
+        # If user exists, return user info
         logger.info(f"User with ID {user_id} found in the database.")
-        
-        
         return {
+            "message": "User authenticated successfully",
             "user_id": user_id,
             "email": email,
-            "name": name,
-            "message": "User authenticated successfully",
+            "is_profile_complete": True,
             "jwt_token": app_jwt_token,
         }
 
