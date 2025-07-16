@@ -1,5 +1,7 @@
 from fastapi import Request, HTTPException, status
 from jose import jwt, JWTError
+
+
 def get_current_user(request: Request):
     """
     Extracts the user ID from the JWT token in the request headers.

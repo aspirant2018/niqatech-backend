@@ -31,7 +31,6 @@ router = APIRouter(
     responses={404: {"description": "Not found"}}
 )
 
-#
 
 # localhost:8000/auth/google
 @router.post("/google", response_model=ItemResponse)
