@@ -69,7 +69,7 @@ async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
 
         users = db.query(User).all()
         logger.info(f"Users {users}")  # Ensure the database is connected
-                
+
         app_jwt_token = generate_jwt_token(user_id)
         logger.info(f"JWT token generated: {app_jwt_token}")
 
@@ -81,7 +81,7 @@ async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
 
             logger.info(f"User with ID {user_id} not found in the database. Creating a new user.")
             reponse = {
-                "message": "User first login. Please compleLookupError: 'Secondary' is not among the defined enum values. Enum name: academiclevelenum. Possible values: primary, secondary, higherte your infomrations.",
+                "message": "User first login. Please complete the profile.",
                 "user_id": user_id,
                 "email": email,
                 "is_profile_complete": False,
