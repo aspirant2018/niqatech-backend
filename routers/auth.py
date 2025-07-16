@@ -1,10 +1,11 @@
 from google.auth.transport import requests as grequests
-from database.database import SessionLocal, User
+from database.database import User, get_db
 from fastapi import APIRouter, Depends
 from schemas.schemas import TokenData, ItemResponse
 from fastapi import  HTTPException
 from google.oauth2 import id_token
 from sqlalchemy.orm import Session
+
 from jose import jwt
 import logging
 import os
@@ -23,12 +24,7 @@ ALGORITHM = "HS256"
 
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+
 
 router = APIRouter(
     prefix="/auth",
@@ -70,7 +66,10 @@ async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
         user_id = id_info['sub']
         email   = id_info['email']
 
-        
+
+        users = db.query(User).all()
+        logger.info(f"Users {users}")  # Ensure the database is connected
+                
         app_jwt_token = generate_jwt_token(user_id)
         logger.info(f"JWT token generated: {app_jwt_token}")
 
@@ -82,7 +81,7 @@ async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
 
             logger.info(f"User with ID {user_id} not found in the database. Creating a new user.")
             reponse = {
-                "message": "User first login. Please complete your infomrations.",
+                "message": "User first login. Please compleLookupError: 'Secondary' is not among the defined enum values. Enum name: academiclevelenum. Possible values: primary, secondary, higherte your infomrations.",
                 "user_id": user_id,
                 "email": email,
                 "is_profile_complete": False,

@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 import enum
 
+        
 # Database URL
 DATABASE_URL = "sqlite:///./niqatech.db" 
 
@@ -16,20 +17,16 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
-# Enums
+
 class AcademicLevelEnum(enum.Enum):
     primary = "primary"
     secondary = "secondary"
     higher = "higher"
 
-class Role(enum.Enum):
-    admin = "admin",
-    user = "user",
-
 class User(Base):
     __tablename__ = 'users'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(String,unique=True, primary_key=True)
     email = Column(String, unique=True, nullable=False)
     #role = Column(Enum(Role), nullable=False)  # Added role field
     first_name = Column(String, nullable=False)
@@ -42,3 +39,12 @@ class User(Base):
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, first_name={self.first_name}, last_name={self.last_name})>"
     
+Base.metadata.create_all(engine)
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

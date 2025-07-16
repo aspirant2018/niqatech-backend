@@ -4,6 +4,8 @@ from fastapi import Depends, HTTPException, status, Request
 from jose import jwt , JWTError
 from schemas.schemas import ProfileData
 import logging
+from database.database import User, get_db
+from sqlalchemy.orm import Session
 
 
 
@@ -42,13 +44,47 @@ router = APIRouter(
 )
 
 @router.post("/register",summary="Register a new user")
-async def register(data: ProfileData, current_user=Depends(get_current_user)):
+async def register(data: ProfileData,db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     """ Endpoint to register a new user."""
 
     logger.info("Registration data received from frontend.")
     logger.info(f"Current user ID: {current_user}")
     logger.info(f"Profile data: {data}")
+    #  an example of data we would receive from the frontend
+    # data = {:
+        # email='mazouzceminfo@gmail.com'
+        # first_name='Abderahim'
+        # last_name='Mazouz'
+        # school_name='Merzkan Mohamed'
+        # academic_level='Secondry school'
+        # city='ksar sbihi'
+        # subject='informatique'
+        # }
 
+    # id = Column(Integer, primary_key=True)
+    # email = Column(String, unique=True, nullable=False)
+    # first_name = Column(String, nullable=False)
+    # last_name = Column(String, nullable=False)
+    # school_name = Column(String, nullable=False)
+    # academic_level = Column(Enum(AcademicLevelEnum), nullable=False)
+    # city = Column(String, nullable=False)
+    # subject = Column(String, nullable=False)
+    
+
+    new_user = User(
+        id=current_user,
+        email=data.email,
+        first_name=data.first_name,
+        last_name=data.last_name,
+        school_name=data.school_name,
+        academic_level=data.academic_level.lower(),
+        city=data.city,
+        subject=data.subject
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
     # Here we Insert the user into the database
+
 
     return {"message": "success"}
