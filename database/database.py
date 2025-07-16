@@ -4,24 +4,16 @@ defines engine, session, Base
 from sqlalchemy import Column, Integer, String, Boolean, Enum
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+from schemas.schemas import AcademicLevelEnum
 import enum
 
         
 # Database URL
 DATABASE_URL = "sqlite:///./niqatech.db" 
-
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
 Base = declarative_base()
 
-
-
-class AcademicLevelEnum(enum.Enum):
-    primary = "primary"
-    secondary = "secondary"
-    higher = "higher"
 
 class User(Base):
     __tablename__ = 'users'
