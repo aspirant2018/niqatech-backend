@@ -5,6 +5,7 @@ from schemas.schemas import TokenData, ItemResponse
 from fastapi import  HTTPException
 from google.oauth2 import id_token
 from sqlalchemy.orm import Session
+from auth.jwt_utils import generate_jwt_token
 
 from jose import jwt
 import logging
@@ -19,10 +20,8 @@ logger = logging.getLogger("__routers/auth.py__")
 
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "245808035770-5e2rf7c0a5kqcfd6d7q4h9r0car8mttc.apps.googleusercontent.com")
-SECRET_KEY = "1234"
-ALGORITHM = "HS256"
-
-
+SECRET_KEY = os.getenv("SECRET_KEY", "1234")  # Use a secure key in production
+ALGORITHM = os.getenv("ALGORITHM", "HS256")  # Use a secure algorithm
 
 
 
@@ -32,18 +31,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}}
 )
 
-# Function to generate a JWT token
-def generate_jwt_token(user_id: str):
-    """
-    Generate a JWT token for the authenticated user.
-    This is a placeholder function; implement JWT generation logic here.
-    """
-    payload = {
-        "sub": user_id,
-    }
-    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
-    return token
-
+#
 
 # localhost:8000/auth/google
 @router.post("/google", response_model=ItemResponse)
@@ -53,6 +41,7 @@ async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
     """
 
     logger.info("Google token received from frontend.")
+    logger.info(f"Token data: {token_data}")
 
     try:
         # Verify the token
@@ -70,7 +59,7 @@ async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
         users = db.query(User).all()
         logger.info(f"Users {users}")  # Ensure the database is connected
 
-        app_jwt_token = generate_jwt_token(user_id)
+        app_jwt_token = generate_jwt_token(user_id, SECRET_KEY, ALGORITHM)
         logger.info(f"JWT token generated: {app_jwt_token}")
 
         user = db.query(User).filter(User.id == user_id).first()
@@ -81,7 +70,7 @@ async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
 
             logger.info(f"User with ID {user_id} not found in the database. Creating a new user.")
             reponse = {
-                "message": "User first login. Please complete the profile.",
+                "message": "User first login. Please complete the.",
                 "user_id": user_id,
                 "email": email,
                 "is_profile_complete": False,

@@ -1,10 +1,10 @@
 from fastapi import APIRouter
 from fastapi import Depends
 from schemas.schemas import ProfileData
-import logging
 from database.database import User, get_db
 from sqlalchemy.orm import Session
 from auth.dependencies import get_current_user
+import logging
 
 
 
@@ -19,7 +19,7 @@ router = APIRouter(
 )
 
 @router.post("/register",summary="Register a new user")
-async def register(data: ProfileData,db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+async def register(data: ProfileData, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     """ Endpoint to register a new user."""
 
     logger.info("Registration data received from frontend.")
