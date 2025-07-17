@@ -53,15 +53,13 @@ async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
         # Extract user info
         user_id = id_info['sub']
         email   = id_info['email']
-
-
+        
         users = db.query(User).all()
-        logger.info(f"Users {users}")  # Ensure the database is connected
-
         app_jwt_token = generate_jwt_token(user_id, SECRET_KEY, ALGORITHM)
-        logger.info(f"JWT token generated: {app_jwt_token}")
-
         user = db.query(User).filter(User.id == user_id).first()
+
+        logger.info(f"Users {users}")  # Ensure the database is connected
+        logger.info(f"JWT token generated: {app_jwt_token}")
         logger.info(f"The user retrieved from the database: {user}")
 
         # Check if the user is already in your database

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from fastapi import Depends
+from fastapi import Depends, status
+from fastapi.responses import JSONResponse
 from schemas.schemas import ProfileData
 from database.database import User, get_db
 from sqlalchemy.orm import Session
@@ -7,17 +8,16 @@ from auth.dependencies import get_current_user
 import logging
 
 
-
-
-
 logger = logging.getLogger("__routers/users.py__")
 
 router = APIRouter(
-    prefix="/user",
-    tags=["user"],
+    prefix="/users",
+    tags=["users"],
     responses={404: {"description": "Not found"}}
 )
 
+
+# create/register a user
 @router.post("/register",summary="Register a new user")
 async def register(data: ProfileData, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     """ Endpoint to register a new user."""
@@ -36,14 +36,19 @@ async def register(data: ProfileData, db: Session = Depends(get_db), current_use
         city=data.city,
         subject=data.subject
     )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    # Here we Insert the user into the database
+    try:
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+    except Exception as e:
+        logger.error(f"Error while registering user: {e}")
+        db.rollback() # Undo the insert Use it when db.commit() fails or an exception happens.
+        raise HTTPException(status_code=500, detail="Internal server error")
 
-
-    return {"message": "success"}
-
+    return JSONResponse(
+        content={"message": "User registered successfully"},
+        status_code=status.HTTP_201_CREATED
+    )
 
 @router.get("/me",summary="Get current user profile")
 async def get_current_user_profile(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
@@ -56,7 +61,8 @@ async def get_current_user_profile(db: Session = Depends(get_db), current_user=D
         logger.error(f"User with ID {current_user} not found.")
         raise HTTPException(status_code=404, detail="User not found")
 
-    return {
+
+    payload = {
         "email": user.email,
         "first_name": user.first_name,
         "last_name": user.last_name,
@@ -65,3 +71,8 @@ async def get_current_user_profile(db: Session = Depends(get_db), current_user=D
         "city": user.city,
         "subject": user.subject
     }
+
+    return JSONResponse(
+        content = payload,
+        status_code = status.HTTP_200_OK
+    )

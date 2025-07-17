@@ -5,10 +5,7 @@
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 import uvicorn
-
-# logging 
 import logging
-
 from routers import auth, users, status
 
 
@@ -16,7 +13,10 @@ from routers import auth, users, status
 logger = logging.getLogger("__main.py__")
 
 
-app = FastAPI()
+app = FastAPI(
+    title = "Niqatech API",
+    version = "1.0.0",
+    )
 
 
 app.add_middleware(
