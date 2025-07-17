@@ -52,6 +52,7 @@ async def register(data: ProfileData, db: Session = Depends(get_db), current_use
 
 @router.get("/me",summary="Get current user profile")
 async def get_current_user_profile(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+
     """ Endpoint to get the current user's profile."""
     
     logger.info(f"Fetching profile for user ID: {current_user}")
@@ -70,9 +71,27 @@ async def get_current_user_profile(db: Session = Depends(get_db), current_user=D
         "academic_level": user.academic_level.value,
         "city": user.city,
         "subject": user.subject
-    }
+    }    # Since this is a stateless API, we just return a success message.
+
 
     return JSONResponse(
         content = payload,
         status_code = status.HTTP_200_OK
+    )
+
+
+@router.post("/logout", summary="Sign out current user")
+async def signout_user(data, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    """ Endpoint to sign out the current user."""
+    
+    logger.info(f"Signing out user ID: {current_user}")
+    logger.info(f"Data received for sign out: {data}")
+
+    # Here you would typically invalidate the user's session or JWT token.
+    # Since this is a stateless API, we just return a success message.
+
+
+    return JSONResponse(
+        content={"message": "User signed out successfully"},
+        status_code=status.HTTP_200_OK
     )
