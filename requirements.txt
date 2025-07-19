@@ -77,3 +77,4 @@ google-auth
 python-jose
 sqlalchemy
 python-multipart
+xlrd
