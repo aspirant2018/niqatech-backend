@@ -2,9 +2,9 @@ from fastapi import APIRouter, UploadFile, File
 from fastapi.responses import JSONResponse
 from fastapi import Depends, HTTPException
 import logging
-from pydantic import BaseModel
 from utils import xls2dict 
 import xlrd
+from schemas.schemas import WorkbookParseResponse
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,7 +20,7 @@ router = APIRouter(
 
     
 
-@router.post("/upload_file", summary="Parse XLS file", response_model=dict)
+@router.post("/upload_file", summary="Parse XLS file", response_model=WorkbookParseResponse)
 async def upload_file(file: UploadFile = File(...)):
     """
     Endpoint to parse an XLS file and return classroom data.
