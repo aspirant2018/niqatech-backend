@@ -79,7 +79,6 @@ async def get_current_user_profile(db: Session = Depends(get_db), current_user=D
         status_code = status.HTTP_200_OK
     )
 
-
 @router.post("/logout", summary="Sign out current user")
 async def signout_user(data, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     """ Endpoint to sign out the current user."""

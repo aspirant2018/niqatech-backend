@@ -9,7 +9,7 @@ Example: A User model with fields like id, email, hashed_password, stored in a d
 '''
 
 
-from sqlalchemy import Column, Integer, String, Boolean, Enum
+from sqlalchemy import Column, Integer, String, Boolean, Enum, Float, ForeignKey
 from sqlalchemy.orm import declarative_base
 from schemas.schemas import AcademicLevelEnum
 
@@ -19,8 +19,8 @@ Base = declarative_base()
 
 
 
-class User(Base):
-    __tablename__ = 'users'
+class Teacher(Base):
+    __tablename__ = 'teachers'
 
     id = Column(Integer, primary_key=True)
     email = Column(String, unique=True, nullable=False)
@@ -32,5 +32,23 @@ class User(Base):
     subject = Column(String, nullable=False)
 
     def __repr__(self):
-        return f"<User(id={self.id}, email={self.email}, first_name={self.first_name}, last_name={self.last_name})>"
+        return f"<teacher(id={self.id}, email={self.email}, first_name={self.first_name}, last_name={self.last_name})>"
+
+
+class student(Base):
+    __tablename__ = 'students'
+
+    student_id = Column(String, primary_key=True)
+    last_name = Column(String, nullable=False)
+    first_name = Column(String, nullable=False)
+    date_of_birth = Column(String, nullable=False)
+    evaluation = Column(Float, nullable=False)
+    assignment = Column(Float, nullable=False)
+    final = Column(Float, nullable=False)
+    note = Column(String, nullable=True)
+    classroom_id = Column(Integer, nullable=False, foreign_key=True)
+
+    def __repr__(self):
+        return f"<Student(student_id={self.student_id}, is_active={self.is_active})>"
     
+

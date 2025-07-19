@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 import uvicorn
 import logging
-from routers import auth, users, status
+from routers import auth, users, status, student_grades_router
 
 
 
@@ -30,6 +30,7 @@ app.add_middleware(
 app.include_router(status.router)
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(student_grades_router.router)
 
 
 
