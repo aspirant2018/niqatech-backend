@@ -71,7 +71,7 @@ async def get_current_user_profile(db: Session = Depends(get_db), current_user=D
         "academic_level": user.academic_level.value,
         "city": user.city,
         "subject": user.subject
-    }    # Since this is a stateless API, we just return a success message.
+    } 
 
 
     return JSONResponse(

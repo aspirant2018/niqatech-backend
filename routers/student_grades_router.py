@@ -24,12 +24,12 @@ router = APIRouter(
 
     
 
-@router.post("/upload_file", summary="Parse XLS file", response_model=WorkbookParseResponse)
+@router.post("/upload_file", summary="upload an XLS file", response_model=WorkbookParseResponse)
 async def upload_file(file: UploadFile = File(...), user: str = Form(...), db: Session = Depends(get_db)):
                       # db: Session = Depends(get_db),
                       # current_user=Depends(get_current_user)
     """
-    Endpoint to parse an XLS file and return classroom data.
+    Endpoint to upload an XLS file.
     """
 
     logger.info(f"User: {user}")
@@ -40,8 +40,7 @@ async def upload_file(file: UploadFile = File(...), user: str = Form(...), db: S
         logger.error("Invalid file type. Only .xls files are allowed.")
         raise HTTPException(status_code=400, detail="Invalid file type. Only .xls files are allowed.")
 
-    try:
-        
+    try:   
         content = await file.read()
         workbook = xlrd.open_workbook(file_contents=content,ignore_workbook_corruption=True, formatting_info=True)
         data = xls2dict(workbook)
@@ -56,8 +55,7 @@ async def upload_file(file: UploadFile = File(...), user: str = Form(...), db: S
         db.refresh(my_uploaded_file)  # now file_id is filled
 
         logger.info(f"my uploaded file: {my_uploaded_file}")
-
-
         return {"message": "XLS file parsed successfully", "data": data}
+    
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error parsing XLS file: {str(e)}")

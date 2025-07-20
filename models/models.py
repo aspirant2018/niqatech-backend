@@ -12,6 +12,10 @@ Example: A User model with fields like id, email, hashed_password, stored in a d
 from sqlalchemy import Column, Integer, String, Boolean, Enum, Float, ForeignKey
 from sqlalchemy.orm import declarative_base
 from schemas.schemas import AcademicLevelEnum
+import uuid
+from sqlalchemy.orm import declarative_base
+from sqlalchemy.dialects.postgresql import UUID
+
 
 
 Base = declarative_base()
@@ -19,8 +23,8 @@ Base = declarative_base()
 
 
 
-class Teacher(Base):
-    __tablename__ = 'teachers'
+class User(Base):
+    __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True)
     email = Column(String, unique=True, nullable=False)
@@ -34,21 +38,15 @@ class Teacher(Base):
     def __repr__(self):
         return f"<teacher(id={self.id}, email={self.email}, first_name={self.first_name}, last_name={self.last_name})>"
 
+class UploadedFile(Base):
+    __tablename__ = 'UploadedFiles'
 
-class student(Base):
-    __tablename__ = 'students'
+    file_id = Column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True, nullable=False)
+    # user_id = Column(String, ForeignKey(User.id), unique=True, nullable=False)
+    user_id = Column(String, unique=True, nullable=False)
+    file_name = Column(String, nullable=False)
 
-    student_id = Column(String, primary_key=True)
-    last_name = Column(String, nullable=False)
-    first_name = Column(String, nullable=False)
-    date_of_birth = Column(String, nullable=False)
-    evaluation = Column(Float, nullable=False)
-    assignment = Column(Float, nullable=False)
-    final = Column(Float, nullable=False)
-    note = Column(String, nullable=True)
-    classroom_id = Column(Integer, nullable=False, foreign_key=True)
 
     def __repr__(self):
-        return f"<Student(student_id={self.student_id}, is_active={self.is_active})>"
-    
+        return f"<file(file_id={self.file_id}, user_id={self.user_id}, file_name={self.file_name})>"
 
