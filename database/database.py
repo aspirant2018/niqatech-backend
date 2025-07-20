@@ -1,10 +1,13 @@
 '''
 defines engine, session, Base
 '''
+import uuid
 from sqlalchemy import Column, Integer, String, Boolean, Enum, Float, ForeignKey
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 import enum
+from sqlalchemy.dialects.postgresql import UUID
+
 
         
 # Database URL
@@ -24,7 +27,6 @@ class User(Base):
 
     id = Column(String,unique=True, primary_key=True)
     email = Column(String, unique=True, nullable=False)
-    #role = Column(Enum(Role), nullable=False)  # Added role field
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
     school_name = Column(String, nullable=False)
@@ -35,21 +37,17 @@ class User(Base):
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, first_name={self.first_name}, last_name={self.last_name})>"
 
-class student(Base):
-    __tablename__ = 'students'
+class UploadedFile(Base):
+    __tablename__ = 'files'
 
-    student_id = Column(String, primary_key=True)
-    last_name = Column(String, nullable=False)
-    first_name = Column(String, nullable=False)
-    date_of_birth = Column(String, nullable=False)
-    evaluation = Column(Float, nullable=False)
-    assignment = Column(Float, nullable=False)
-    final = Column(Float, nullable=False)
-    note = Column(String, nullable=True)
-    classroom_id = Column(Integer, nullable=False, foreign_key=True)
+    file_id = Column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True, nullable=False)
+    # user_id = Column(String, ForeignKey(User.id), unique=True, nullable=False)
+    user_id = Column(String, unique=True, nullable=False)
+    file_name = Column(String, nullable=False)
+
 
     def __repr__(self):
-        return f"<Student(student_id={self.student_id}, is_active={self.is_active})>"
+        return f"<file(file_id={self.file_id}, user_id={self.user_id}, file_name={self.file_name})>"
     
 
     
