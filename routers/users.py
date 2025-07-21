@@ -2,7 +2,9 @@ from fastapi import APIRouter, HTTPException
 from fastapi import Depends, status
 from fastapi.responses import JSONResponse
 from schemas.schemas import ProfileData
-from database.database import User, get_db
+from database.database import get_db
+from database.models import User
+
 from sqlalchemy.orm import Session
 from auth.dependencies import get_current_user
 import logging
@@ -56,7 +58,6 @@ async def get_current_user_profile(db: Session = Depends(get_db), current_user=D
     """ Endpoint to get the current user's profile."""
     
     logger.info(f"Fetching profile for user ID: {current_user}")
-
     user = db.query(User).filter(User.id == current_user).first()
     if not user:
         logger.error(f"User with ID {current_user} not found.")

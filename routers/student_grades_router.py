@@ -1,11 +1,14 @@
 from fastapi import APIRouter, UploadFile, File, Form
-from fastapi.responses import JSONResponse
+# from fastapi.responses import JSONResponse
 from fastapi import Depends, HTTPException
 import logging
 from utils import xls2dict 
 import xlrd
 from schemas.schemas import WorkbookParseResponse
-from database.database import UploadedFile, get_db
+from auth.dependencies import get_current_user
+
+from database.database import get_db
+from database.models import UploadedFile
 from sqlalchemy.orm import Session
 
 
@@ -25,14 +28,17 @@ router = APIRouter(
     
 
 @router.post("/upload_file", summary="upload an XLS file", response_model=WorkbookParseResponse)
-async def upload_file(file: UploadFile = File(...), user: str = Form(...), db: Session = Depends(get_db)):
+async def upload_file(file: UploadFile = File(...), user: str = Form(...), db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
                       # db: Session = Depends(get_db),
                       # current_user=Depends(get_current_user)
     """
     Endpoint to upload an XLS file.
     """
 
-    logger.info(f"User: {user}")
+    logger.info(f"Current user: {current_user}")
+    logger.info(f"Swagger User: {user}")
+
+
     logger.info("Received request to parse XLS file.")
     logger.info(f"file name is {file.filename}")
 
@@ -46,7 +52,7 @@ async def upload_file(file: UploadFile = File(...), user: str = Form(...), db: S
         data = xls2dict(workbook)
 
         my_uploaded_file = UploadedFile(
-            user_id = user,
+            user_id = current_user,
             file_name = file.filename,
         )
 

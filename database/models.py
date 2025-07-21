@@ -15,10 +15,8 @@ from schemas.schemas import AcademicLevelEnum
 import uuid
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.dialects.postgresql import UUID
+from database.database import Base
 
-
-
-Base = declarative_base()
 
 
 
@@ -26,7 +24,7 @@ Base = declarative_base()
 class User(Base):
     __tablename__ = 'users'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(String, primary_key=True)
     email = Column(String, unique=True, nullable=False)
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
@@ -39,11 +37,10 @@ class User(Base):
         return f"<teacher(id={self.id}, email={self.email}, first_name={self.first_name}, last_name={self.last_name})>"
 
 class UploadedFile(Base):
-    __tablename__ = 'UploadedFiles'
+    __tablename__ = 'uploaded_files'
 
     file_id = Column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True, nullable=False)
-    # user_id = Column(String, ForeignKey(User.id), unique=True, nullable=False)
-    user_id = Column(String, unique=True, nullable=False)
+    user_id = Column(String, ForeignKey(User.id), unique=True, nullable=False)
     file_name = Column(String, nullable=False)
 
 
