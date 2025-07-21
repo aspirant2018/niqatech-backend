@@ -28,7 +28,7 @@ router = APIRouter(
     
 
 @router.post("/upload_file", summary="upload an XLS file", response_model=WorkbookParseResponse)
-async def upload_file(file: UploadFile = File(...), user: str = Form(...), db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
                       # db: Session = Depends(get_db),
                       # current_user=Depends(get_current_user)
     """
@@ -36,7 +36,6 @@ async def upload_file(file: UploadFile = File(...), user: str = Form(...), db: S
     """
 
     logger.info(f"Current user: {current_user}")
-    logger.info(f"Swagger User: {user}")
 
 
     logger.info("Received request to parse XLS file.")

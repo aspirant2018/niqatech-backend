@@ -11,12 +11,14 @@ from routers import auth, users, status, student_grades_router
 from fastapi.openapi.utils import get_openapi
 
 
+logger = logging.getLogger("__main.py__")
+
 
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
     openapi_schema = get_openapi(
-        title="My API with JWT",
+        title="Niqatech API with JWT",
         version="1.0.0",
         description="This is a secured API with JWT",
         routes=app.routes,
@@ -33,14 +35,7 @@ def custom_openapi():
     return app.openapi_schema
 
 
-
-logger = logging.getLogger("__main.py__")
-
-
-app = FastAPI(
-    title = "Niqatech API",
-    version = "1.0.0",
-    )
+app = FastAPI()
 app.openapi = custom_openapi
 
 

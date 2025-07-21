@@ -1,5 +1,6 @@
 from google.auth.transport import requests as grequests
-from database.database import User, get_db
+from database.models import User
+from database.database import get_db
 from fastapi import APIRouter, Depends
 from schemas.schemas import TokenData, ItemResponse
 from fastapi import  HTTPException
