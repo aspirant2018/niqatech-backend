@@ -52,33 +52,7 @@ async def register(data: ProfileData, db: Session = Depends(get_db), current_use
         status_code=status.HTTP_201_CREATED
     )
 
-@router.get("/me",summary="Get current user profile")
-async def get_current_user_profile(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
 
-    """ Endpoint to get the current user's profile."""
-    
-    logger.info(f"Fetching profile for user ID: {current_user}")
-    user = db.query(User).filter(User.id == current_user).first()
-    if not user:
-        logger.error(f"User with ID {current_user} not found.")
-        raise HTTPException(status_code=404, detail="User not found")
-
-
-    payload = {
-        "email": user.email,
-        "first_name": user.first_name,
-        "last_name": user.last_name,
-        "school_name": user.school_name,
-        "academic_level": user.academic_level.value,
-        "city": user.city,
-        "subject": user.subject
-    } 
-
-
-    return JSONResponse(
-        content = payload,
-        status_code = status.HTTP_200_OK
-    )
 
 @router.post("/logout", summary="Sign out current user")
 async def signout_user(data, db: Session = Depends(get_db), current_user=Depends(get_current_user)):

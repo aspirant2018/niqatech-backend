@@ -34,7 +34,7 @@ class ItemResponse(BaseModel):
 
 
 class Student(BaseModel):
-    id: int             = Field(description="The student ID")
+    student_id: int     = Field(description="The student ID")
     row: int            = Field(description="The i-th row of the student in the Excel File")
     last_name: str      = Field(description="Student last name")
     first_name: str     = Field(description="Student first name")
@@ -43,6 +43,8 @@ class Student(BaseModel):
     first_assignment: Optional[float] = Field(description="The first assignment grade")
     final_exam: Optional[float]       = Field(description="The final exam grade")
     observation: Optional[str]        = Field(description="The observation given by the teacher")
+
+
 
 class Classroom(BaseModel):
     school_name: str = Field(description="The first assignment grade")

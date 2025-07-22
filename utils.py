@@ -2,7 +2,6 @@
 This file contains utility functions and classes for the Niqatech backend application.
 '''
 
-import os
 import re
 
 
