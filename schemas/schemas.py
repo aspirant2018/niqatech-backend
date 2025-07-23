@@ -1,4 +1,4 @@
-from pydantic import BaseModel , Field
+from pydantic import BaseModel , Field, EmailStr
 from typing import List, Optional
 import enum
 
@@ -14,7 +14,7 @@ class TokenData(BaseModel):
 
 
 class ProfileData(BaseModel):
-    email: str # i must give it the Email type from pydantic
+    email: EmailStr
     first_name: str
     last_name: str
     school_name: str
@@ -48,14 +48,14 @@ class Student(BaseModel):
 
 class Classroom(BaseModel):
     school_name: str = Field(description="The first assignment grade")
-    term: str 
-    year: str
-    level: str
-    subject: str
-    classroom_id: str
-    classroom_name: str
-    number_of_students: int
-    students: List[Student]
+    term: str        = Field(description="The term")  
+    year: str        = Field(description="The academic year")
+    level: str       = Field(description="The level") 
+    subject: str     = Field(description="The subject")
+    classroom_id: str       = Field(description="The classroom id")
+    classroom_name: str     = Field(description="The classroom name")
+    number_of_students: int = Field(description="The number of student")
+    students: List[Student] = Field(description="The list of student in the classroom")
 
 class WorkbookParseResponse(BaseModel):
     message: str = "XLS file parsed successfully"

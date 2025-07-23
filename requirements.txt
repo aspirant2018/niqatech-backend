@@ -6,3 +6,4 @@ xlrd
 fastapi
 uvicorn
 requests
+pydantic[email]

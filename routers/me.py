@@ -25,9 +25,10 @@ router = APIRouter(
     responses={404: {"description": "Not found"}}
 )
 
-    
-
-@router.post("/upload_file", summary="upload an XLS file",) #response_model=WorkbookParseResponse)
+# ===============================
+# 📁 FILE MANAGEMENT ENDPOINTS
+# ===============================
+@router.post("/file", summary="upload an XLS file",) #response_model=WorkbookParseResponse)
 async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     """
     Endpoint to upload an XLS file.
@@ -66,16 +67,36 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
         raise HTTPException(status_code=500, detail=f"Error parsing XLS file: {str(e)}")
     
 
-@router.delete("/delete_file", summary="delete the upoaded file",) #response_model=WorkbookParseResponse)
-async def upload_file(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+@router.delete("/file", summary="delete the upoaded file",) #response_model=WorkbookParseResponse)
+async def delete_file(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     """
     Endpoint to delete the XLS uploaded file.
     """
 
     return {"message": "The XLS file has been deleted by the user"}
 
+@router.get("/file", summary="get the uploaded file")
+async def get_file(db:Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    """
+    Endpoint to get the filename if it exists from the data base
+    """
 
-@router.get("/get_user_info",summary="Get current user profile")
+    user = db.query(User).filter(User.id == current_user).first()
+
+    logger.info(user.file.file_name)    # Access the uploaded file from the user
+    logger.info(user.first_name)        # Access the uploaded file from the user
+
+    return {
+        "message":"success",
+        "user":user.first_name,
+        "data":user.file
+        }
+
+
+# ===============================
+# 👤 USER PROFILE ENDPOINTS
+# ===============================
+@router.get("/profile",summary="Get current user profile")
 async def get_current_user_profile(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
 
     """ Endpoint to get the current user's profile."""
@@ -101,24 +122,24 @@ async def get_current_user_profile(db: Session = Depends(get_db), current_user=D
         status_code = status.HTTP_200_OK
     )
 
-@router.get("/get_file", summary="get the uploaded file")
-async def get_file(db:Session = Depends(get_db), current_user: str = Depends(get_current_user)):
-    """
-    Endpoint to get the filename if it exists from the data base
-    """
 
-    user = db.query(User).filter(User.id == current_user).first()
+# ===============================
+# 🔐 AUTHENTICATION ENDPOINTS
+# ===============================
+@router.post("/logout", summary="Sign out current user")
+async def signout_user(data, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    """ Endpoint to sign out the current user."""
+    
+    logger.info(f"Signing out user ID: {current_user}")
+    logger.info(f"Data received for sign out: {data}")
 
-    logger.info(user.file.file_name)    # Access the uploaded file from the user
-    logger.info(user.first_name)        # Access the uploaded file from the user
-
-    return {
-        "message":"success",
-        "user":user.first_name,
-        "data":user.file
-        }
+    # Here you would typically invalidate the user's session or JWT token.
+    # Since this is a stateless API, we just return a success message.
 
 
-
+    return JSONResponse(
+        content={"message": "User signed out successfully"},
+        status_code=status.HTTP_200_OK
+    )
 
     
