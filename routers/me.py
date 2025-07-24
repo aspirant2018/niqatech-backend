@@ -72,8 +72,18 @@ async def delete_file(db: Session = Depends(get_db), current_user: str = Depends
     """
     Endpoint to delete the XLS uploaded file.
     """
+    object_file = db.query(UploadedFile).filter_by(user_id = current_user).first()
+    if object_file:
+        db.delete(object_file)
+        db.commit()
+        logger.info(f"the file has been deleted")
+        return {"message": "The XLS file has been deleted by the user"}
+    
+    raise HTTPException(status_code=404, detail="No file has been found")
 
-    return {"message": "The XLS file has been deleted by the user"}
+
+
+    
 
 @router.get("/file", summary="get the uploaded file")
 async def get_file(db:Session = Depends(get_db), current_user: str = Depends(get_current_user)):
