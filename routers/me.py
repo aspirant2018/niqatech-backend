@@ -2,13 +2,13 @@ from fastapi import APIRouter, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from fastapi import Depends, HTTPException, status
 import logging
-from utils import xls2dict 
+from utils import parse_xls 
 import xlrd
 from schemas.schemas import WorkbookParseResponse
 from auth.dependencies import get_current_user
 
 from database.database import get_db
-from database.models import UploadedFile, User
+from database.models import UploadedFile, User, Classroom
 from sqlalchemy.orm import Session
 
 
@@ -45,27 +45,56 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
     try:   
         content = await file.read()
         workbook = xlrd.open_workbook(file_contents=content,ignore_workbook_corruption=True, formatting_info=True)
-        data = xls2dict(workbook)
+        data = parse_xls(workbook)
 
-        my_uploaded_file = UploadedFile(
+
+        #logger.info(f"{data['classrooms'][0]}")
+
+        uploaded_file = UploadedFile(
             user_id = current_user,
-            file_name = "xls-file-"+file.filename,
+            file_name = file.filename,
         )
-        existing_file = db.query(UploadedFile).filter_by(user_id=my_uploaded_file.user_id).first()
+
         
-        if not existing_file:
-            db.add(my_uploaded_file)
-            db.commit()
-            db.refresh(my_uploaded_file)  # now file_id is filled
-        else:
+        existing_file = db.query(UploadedFile).filter_by(user_id=uploaded_file.user_id).first()
+
+        if existing_file:
             return {"message": "The user already has a file in his database", "data": []}
-    
-        logger.info(f"my uploaded file: {my_uploaded_file}")
+        
+        
+        db.add(uploaded_file)
+        db.commit()
+        db.refresh(uploaded_file) # now file_id is filled
+        logger.info(f"uploaded file is proceeded: {uploaded_file}")
+        insert_classroom(db, uploaded_file.file_id, data)           
+        
         return {"message": "XLS file parsed successfully", "data": data}
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error parsing XLS file: {str(e)}")
-    
+
+def insert_classroom(db: Session, file_id:str , data:dict) -> None:
+    classrooms: list = data['classrooms']
+
+    for classroom in classrooms:
+
+        classroom_name = classroom["classroom_name"]
+        number_of_students = classroom["number_of_students"]
+
+        new_classroom = Classroom(
+            file_id=file_id,
+            classroom_name=classroom_name,
+            number_of_students=number_of_students
+        )
+        
+        db.add(new_classroom)
+    db.commit()
+
+    logger.info(f"{len(classrooms)} classrooms were proceded")
+
+
+
+
 
 @router.delete("/file", summary="delete the upoaded file",) #response_model=WorkbookParseResponse)
 async def delete_file(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):

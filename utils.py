@@ -5,7 +5,7 @@ This file contains utility functions and classes for the Niqatech backend applic
 import re
 
 
-def xls2dict(workbook):
+def parse_xls(workbook):
     data = {"classrooms": []}  # Start with a dictionary containing a list of classrooms
 
     for i in range(len(workbook.sheets()) - 1):
@@ -21,12 +21,12 @@ def xls2dict(workbook):
         subject = re.search(r"مادة\s*:\s*(.+)", text).group(1).strip()
 
         classroom = {
-            "school_name": sheet.row_values(3)[0],
-            "term": term,
-            "year": year,
-            "level": level,
-            "subject": subject,
-            "classroom_id": f"Sheet-{i}",
+            #"school_name": sheet.row_values(3)[0],
+            #"term": term,
+            #"year": year,
+            #"level": level,
+            #"subject": subject,
+            #"classroom_id": f"Sheet-{i}",
             "classroom_name": sheet_name,
             "number_of_students": sheet.nrows - 8,
             "students": []  # Store students in a list

@@ -9,7 +9,7 @@ Example: A User model with fields like id, email, hashed_password, stored in a d
 '''
 
 
-from sqlalchemy import Column, Integer, String, Boolean, Enum, Float, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, Enum, Float, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import declarative_base, relationship
 from schemas.schemas import AcademicLevelEnum
 import uuid
@@ -53,34 +53,23 @@ class UploadedFile(Base):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class Classroom(Base):
     __tablename__ = "classrooms"
 
-    classroom_id = Column(String, primary_key=True) 
-    file_id = Column(String, ForeignKey(UploadedFile.file_id), unique=True, nullable=False)
+    classroom_id = Column(Integer, primary_key=True,index=True) 
+    file_id = Column(UUID(as_uuid=True), ForeignKey(UploadedFile.file_id, ondelete="CASCADE"), nullable=False)
+    classroom_name = Column(String, nullable=False)
+    number_of_students = Column(Integer,nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("file_id","classroom_name",name="uix_file_classroom"),
+    )
 
 class Student(Base):
     __tablename__ = "students"
 
     student_id = Column(String, primary_key=True)
-    row = Column(Integer, nullable = False)
+    row = Column(Integer, nullable=False)
     last_name = Column(String, nullable=False)
     first_name = Column(String, nullable=False)
     date_of_birth = Column(String, nullable=False)
