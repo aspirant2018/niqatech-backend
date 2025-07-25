@@ -58,11 +58,12 @@ class Classroom(Base):
 
     classroom_id = Column(Integer, primary_key=True,index=True) 
     file_id = Column(UUID(as_uuid=True), ForeignKey(UploadedFile.file_id, ondelete="CASCADE"), nullable=False)
-    classroom_name = Column(String, nullable=False)
+    sheet_name = Column(String, nullable=False)
     number_of_students = Column(Integer,nullable=False)
-
+    
+    # The UniqueConstraint("file_id", "sheet_name") prevents duplicate classroom records for the same sheet within the same Excel file.
     __table_args__ = (
-        UniqueConstraint("file_id","classroom_name",name="uix_file_classroom"),
+        UniqueConstraint("file_id","sheet_name",name="uix_file_classroom"),
     )
 
 class Student(Base):

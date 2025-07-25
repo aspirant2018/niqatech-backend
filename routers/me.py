@@ -35,9 +35,12 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
     """
 
     logger.info(f"Current user: {current_user}")
+    existing_user = db.query(User).filter_by(id=current_user).first()
+    if not existing_user:
+        raise HTTPException(status_code=400, detail="User is registred. Please register first") 
+    
     logger.info("Received request to parse XLS file.")
     logger.info(f"file name is {file.filename}")
-
     if not file.filename.endswith('.xls'):
         logger.error("Invalid file type. Only .xls files are allowed.")
         raise HTTPException(status_code=400, detail="Invalid file type. Only .xls files are allowed.")
@@ -55,7 +58,6 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
             file_name = file.filename,
         )
 
-        
         existing_file = db.query(UploadedFile).filter_by(user_id=uploaded_file.user_id).first()
 
         if existing_file:
@@ -78,18 +80,17 @@ def insert_classroom(db: Session, file_id:str , data:dict) -> None:
 
     for classroom in classrooms:
 
-        classroom_name = classroom["classroom_name"]
+        sheet_name = classroom["sheet_name"]
         number_of_students = classroom["number_of_students"]
 
         new_classroom = Classroom(
             file_id=file_id,
-            classroom_name=classroom_name,
+            sheet_name=sheet_name,
             number_of_students=number_of_students
         )
         
         db.add(new_classroom)
     db.commit()
-
     logger.info(f"{len(classrooms)} classrooms were proceded")
 
 

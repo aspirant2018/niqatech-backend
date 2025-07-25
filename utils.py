@@ -27,7 +27,7 @@ def parse_xls(workbook):
             #"level": level,
             #"subject": subject,
             #"classroom_id": f"Sheet-{i}",
-            "classroom_name": sheet_name,
+            "sheet_name": sheet_name,
             "number_of_students": sheet.nrows - 8,
             "students": []  # Store students in a list
         }
