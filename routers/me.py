@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, status
 import logging
 from utils import parse_xls, to_float_or_none
 import xlrd
-from schemas.schemas import WorkbookParseResponse
+from schemas.schemas import WorkbookParseResponse, FileUploadResponse
 from auth.dependencies import get_current_user
 
 from database.database import get_db
@@ -28,8 +28,12 @@ router = APIRouter(
 # ===============================
 # 📁 FILE MANAGEMENT ENDPOINTS
 # ===============================
-@router.post("/file", summary="upload an XLS file")
-async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+@router.post("/file", summary="upload an XLS file",response_model=FileUploadResponse)
+async def upload_file(
+                    file: UploadFile = File(...),
+                    db: Session = Depends(get_db),
+                    current_user: str = Depends(get_current_user)
+                    ):
     """
     Endpoint to upload an XLS file.
     """
@@ -71,7 +75,6 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
         populate_database(db, uploaded_file.file_id, data)    
         
         return {
-                "message": "XLS file parsed successfully",
                 "file_id": str(uploaded_file.file_id),
                 "num_classrooms": len(data["classrooms"]),
                 }
@@ -116,7 +119,7 @@ def populate_database(db: Session, file_id:str , data:dict) -> None:
     logger.info(f"{len(classrooms)} classrooms were proceded")
 
 
-@router.delete("/file", summary="delete the upoaded file",) #response_model=WorkbookParseResponse)
+@router.delete("/file", summary="delete the uploaded file",) #response_model=WorkbookParseResponse)
 async def delete_file(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     """
     Endpoint to delete the XLS uploaded file.
@@ -141,9 +144,6 @@ async def delete_file(db: Session = Depends(get_db), current_user: str = Depends
     raise HTTPException(status_code=404, detail="No file has been found")
 
 
-
-    
-
 @router.get("/file", summary="get the uploaded file")
 async def get_file(db:Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     """
@@ -161,6 +161,56 @@ async def get_file(db:Session = Depends(get_db), current_user: str = Depends(get
         "data":user.file
         }
 
+# ===============================
+# 📁 Classroom ENDPOINTS
+# ===============================
+@router.get("/classrooms", summary="list all the user's classrooms")
+async def get_all_classrooms(db:Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    """
+    Endpoint to list all the user's classrooms
+    """
+    file = db.query(UploadedFile).filter(User.id==current_user).first()
+    classrooms = db.query(Classroom).filter(Classroom.file_id==file.file_id).all()
+    return classrooms
+
+@router.get("/classrooms/{classroom_id}", summary="Get specific classroom")
+async def get_all_classrooms(classroom_id, db:Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    """
+    Endpoint to get specific classroom
+    """
+    file = db.query(UploadedFile).filter(User.id==current_user).first()
+    classroom = db.query(Classroom).filter(Classroom.file_id==file.file_id, Classroom.classroom_id == classroom_id ).all()
+    return classroom
+
+# ===============================
+# 📁 students ENDPOINTS
+# ===============================
+@router.get("/classrooms/{classroom_id}/students", summary="list all the students in a specific classroom")
+async def get_all_classrooms(classroom_id: int, db:Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    """
+    Endpoint to list all in a specific classroom
+    """
+    file = db.query(UploadedFile).filter(User.id==current_user).first()
+    classroom = db.query(Classroom).filter(Classroom.file_id==file.file_id, Classroom.classroom_id == classroom_id).first()
+    students = db.query(Student).filter(Student.classroom_id == classroom.classroom_id).all()
+    return students
+
+@router.get("/classrooms/students/{student_id}", summary="Get specific classroom")
+async def get_all_classrooms(student_id, db:Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    """
+    Endpoint to get specific classroom
+    """
+    file = db.query(UploadedFile).filter(User.id==current_user).first()
+    #logger.info(file.classrooms[0].classroom_id)
+
+    classroom_subquery = db.query(Classroom.classroom_id).filter(
+        Classroom.file_id == file.file_id
+    )
+    student = db.query(Student).filter(
+        Student.classroom_id.in_(classroom_subquery),
+        Student.student_id == student_id
+    ).first()
+    return student
 
 # ===============================
 # 👤 USER PROFILE ENDPOINTS

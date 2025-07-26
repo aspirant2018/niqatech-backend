@@ -60,3 +60,10 @@ class Classroom(BaseModel):
 class WorkbookParseResponse(BaseModel):
     message: str = "XLS file parsed successfully"
     data: dict[str, List[Classroom]]  # {"classrooms": [...]}
+
+
+
+class FileUploadResponse(BaseModel):
+    message: str = Field(default="XLS file parsed successfully", description="Operation successful message")
+    file_id: str = Field(description="The uploaded file id")
+    num_classrooms: int = Field(description="The number of classrooms in the uploaded file (i.e., sheets)")
