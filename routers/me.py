@@ -2,7 +2,7 @@ from fastapi import APIRouter, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from fastapi import Depends, HTTPException, status
 import logging
-from utils import parse_xls 
+from utils import parse_xls, to_float_or_none
 import xlrd
 from schemas.schemas import WorkbookParseResponse
 from auth.dependencies import get_current_user
@@ -28,7 +28,7 @@ router = APIRouter(
 # ===============================
 # 📁 FILE MANAGEMENT ENDPOINTS
 # ===============================
-@router.post("/file", summary="upload an XLS file",response_model=WorkbookParseResponse)
+@router.post("/file", summary="upload an XLS file")
 async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     """
     Endpoint to upload an XLS file.
@@ -61,7 +61,7 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
         existing_file = db.query(UploadedFile).filter_by(user_id=uploaded_file.user_id).first()
 
         if existing_file:
-            return {"message": "The user already has a file in his database", "data": []}
+            raise HTTPException(status_code=400, detail="The user already has a file in the database")
         
         db.add(uploaded_file)
         db.commit()
@@ -70,7 +70,11 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
         logger.info(f"uploaded file is proceeded: {uploaded_file}")            
         populate_database(db, uploaded_file.file_id, data)    
         
-        return {"message": "XLS file parsed successfully", "data": data}
+        return {
+                "message": "XLS file parsed successfully",
+                "file_id": str(uploaded_file.file_id),
+                "num_classrooms": len(data["classrooms"]),
+                }
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error parsing XLS file: {str(e)}")
@@ -101,10 +105,10 @@ def populate_database(db: Session, file_id:str , data:dict) -> None:
                 last_name = student['last_name'],
                 first_name = student['first_name'],
                 date_birth = student['date_of_birth'],
-                evaluation = student['evaluation'],
-                first_assignment = student['first_assignment'],
-                final_exam = student['final_exam'],
-                observation = student['observation'],
+                evaluation = to_float_or_none(student['evaluation']),
+                first_assignment = to_float_or_none(student['first_assignment']),
+                final_exam = to_float_or_none(student['final_exam']),
+                observation = to_float_or_none(student['observation']),
             )
             db.add(new_student)
     db.commit()
@@ -118,12 +122,22 @@ async def delete_file(db: Session = Depends(get_db), current_user: str = Depends
     Endpoint to delete the XLS uploaded file.
     """
     object_file = db.query(UploadedFile).filter_by(user_id = current_user).first()
-    if object_file:
-        db.delete(object_file)
-        db.commit()
-        logger.info(f"the file has been deleted")
-        return {"message": "The XLS file has been deleted by the user"}
     
+    if object_file:
+        logger.info(f"Deleting file {object_file.file_id}")
+
+        classrooms = db.query(Classroom).filter_by(file_id=object_file.file_id).all()
+
+        for classroom in classrooms:
+            db.query(Student).filter_by(classroom_id=classroom.classroom_id).delete()
+            db.delete(classroom)
+
+        db.delete(object_file)
+
+        db.commit()
+        logger.info("The file and all related classrooms and students have been deleted")
+
+        return {"message": "The XLS file and all related data have been deleted"}
     raise HTTPException(status_code=404, detail="No file has been found")
 
 

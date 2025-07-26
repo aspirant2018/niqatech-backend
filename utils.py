@@ -49,3 +49,10 @@ def parse_xls(workbook):
         data["classrooms"].append(classroom)  # Add classroom to the list
 
     return data  # Return the dictionary
+
+
+def to_float_or_none(value):
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return None

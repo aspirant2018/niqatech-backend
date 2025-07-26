@@ -40,11 +40,18 @@ class UploadedFile(Base):
     file_id = Column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True, nullable=False)
     user_id = Column(String, ForeignKey(User.id, ondelete="CASCADE"), unique=True, nullable=False)
     file_name = Column(String, nullable=False)
+
     user = relationship("User", back_populates="file")
 
+    classrooms = relationship(
+        "Classroom",
+        back_populates="file",
+        cascade="all, delete-orphan",
+        passive_deletes=True
+    )
 
     def __repr__(self):
-        return f"<file(file_id={self.file_id}, user_id={self.user_id}, file_name={self.file_name})>"
+        return f"<file(file_id={self.file_id}>"
 
 
 
@@ -55,6 +62,15 @@ class Classroom(Base):
     file_id = Column(UUID(as_uuid=True), ForeignKey(UploadedFile.file_id, ondelete="CASCADE"), nullable=False)
     sheet_name = Column(String, nullable=False)
     number_of_students = Column(Integer,nullable=False)
+
+    students = relationship(
+        "Student",
+        back_populates="classroom",
+        cascade="all, delete-orphan",
+        passive_deletes=True
+    )
+    file = relationship("UploadedFile", back_populates="classrooms")
+
     
     # The UniqueConstraint("file_id", "sheet_name") prevents duplicate classroom records for the same sheet within the same Excel file.
     __table_args__ = (
@@ -74,6 +90,9 @@ class Student(Base):
     first_assignment = Column(Float)
     final_exam = Column(Float)
     observation = Column(String)
+
+
+    classroom = relationship("Classroom", back_populates="students")
 
     __table_args__=(
         CheckConstraint('evaluation >= 0 AND evaluation <=20',name='Check_Evaluation_range'),
