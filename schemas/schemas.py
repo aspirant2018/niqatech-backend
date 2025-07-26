@@ -34,7 +34,7 @@ class ItemResponse(BaseModel):
 
 
 class Student(BaseModel):
-    student_id: int     = Field(description="The student ID")
+    student_id: str     = Field(description="The student ID")
     row: int            = Field(description="The i-th row of the student in the Excel File")
     last_name: str      = Field(description="Student last name")
     first_name: str     = Field(description="Student first name")

@@ -1,19 +1,15 @@
 '''
 Usually refer to data structures that represent database tables or entities.
-
 In ORMs (like SQLAlchemy, Django ORM), models define the shape of your database records — their fields, types, relations.
-
 Models are tied to persistence, meaning they map to how data is stored and retrieved.
-
 Example: A User model with fields like id, email, hashed_password, stored in a database.
 '''
 
 
-from sqlalchemy import Column, Integer, String, Boolean, Enum, Float, ForeignKey, UniqueConstraint
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy import Column, Integer, String, Boolean, Enum, Float, ForeignKey, UniqueConstraint, CheckConstraint
+from sqlalchemy.orm import relationship
 from schemas.schemas import AcademicLevelEnum
 import uuid
-from sqlalchemy.orm import declarative_base
 from sqlalchemy.dialects.postgresql import UUID
 from database.database import Base
 
@@ -34,8 +30,7 @@ class User(Base):
     subject = Column(String, nullable=False)
 
     file = relationship("UploadedFile", back_populates="user", uselist=False) # Uselist => Ensures it's a one-to-one relationship, Back populate => biderectional
-
-
+    
     def __repr__(self):
         return f"<teacher(id={self.id}, email={self.email}, first_name={self.first_name}, last_name={self.last_name})>"
 
@@ -43,7 +38,7 @@ class UploadedFile(Base):
     __tablename__ = 'uploaded_files'
 
     file_id = Column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True, nullable=False)
-    user_id = Column(String, ForeignKey(User.id), unique=True, nullable=False)
+    user_id = Column(String, ForeignKey(User.id, ondelete="CASCADE"), unique=True, nullable=False)
     file_name = Column(String, nullable=False)
     user = relationship("User", back_populates="file")
 
@@ -70,15 +65,21 @@ class Student(Base):
     __tablename__ = "students"
 
     student_id = Column(String, primary_key=True)
+    classroom_id = Column(String, ForeignKey(Classroom.classroom_id, ondelete="CASCADE"), nullable=False)
     row = Column(Integer, nullable=False)
     last_name = Column(String, nullable=False)
     first_name = Column(String, nullable=False)
-    date_of_birth = Column(String, nullable=False)
-
+    date_birth = Column(String, nullable=False)
     evaluation = Column(Float)
-    first_assignment = Column(String)
-    final_exam = Column(String)
+    first_assignment = Column(Float)
+    final_exam = Column(Float)
     observation = Column(String)
+
+    __table_args__=(
+        CheckConstraint('evaluation >= 0 AND evaluation <=20',name='Check_Evaluation_range'),
+        CheckConstraint('first_assignment >= 0 AND first_assignment <=20',name='Check_Evaluation_range'),
+        CheckConstraint('final_exam >= 0 AND final_exam <=20',name='Check_Evaluation_range'),
+    )
 
 
 
