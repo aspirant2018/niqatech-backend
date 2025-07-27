@@ -1,4 +1,4 @@
-from pydantic import BaseModel , Field, EmailStr
+from pydantic import BaseModel , Field, EmailStr, confloat
 from typing import List, Optional
 import enum
 
@@ -67,3 +67,11 @@ class FileUploadResponse(BaseModel):
     message: str = Field(default="XLS file parsed successfully", description="Operation successful message")
     file_id: str = Field(description="The uploaded file id")
     num_classrooms: int = Field(description="The number of classrooms in the uploaded file (i.e., sheets)")
+
+
+
+class GradeUpdate(BaseModel):
+    evaluation:  float = Field(..., ge=0.0, le=20.0, description="The evaluation grade must be between 0 and 20 ")
+    first_assignment: float = Field(..., ge=0.0, le=20.0, description="The first assignment grade must be between 0 and 20 ")
+    final_exam: float = Field(..., ge=0.0, le=20.0, description="The final exam grade must be between 0 and 20 ")
+    observation: str  = Field(description="The observation given by the teacher")

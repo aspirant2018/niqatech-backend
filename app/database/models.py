@@ -99,6 +99,10 @@ class Student(Base):
         CheckConstraint('final_exam >= 0 AND final_exam <=20',name='Check_Evaluation_range'),
     )
 
+    def __repr__(self):
+        return f"<student(student_id={self.student_id}>, evaluation={self.evaluation}"
+
+
 
 
 

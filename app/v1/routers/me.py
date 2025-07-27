@@ -2,7 +2,7 @@ from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, s
 from fastapi.responses import JSONResponse
 from app.v1.utils import parse_xls, to_float_or_none
 
-from app.v1.schemas.schemas import WorkbookParseResponse, FileUploadResponse
+from app.v1.schemas.schemas import WorkbookParseResponse, FileUploadResponse, GradeUpdate
 from app.v1.auth.dependencies import get_current_user
 from app.database.database import get_db
 from app.database.models import UploadedFile, User, Classroom, Student
@@ -163,6 +163,14 @@ def populate_database(db: Session, file_id:str , data:dict) -> None:
             # Add students
             students = classroom.get('students', [])
             for student in students:
+
+                student_grades = Grades(
+                    evaluation=to_float_or_none(student['evaluation']),
+                    first_assignment = to_float_or_none(student['first_assignment']),
+                    final_exam = to_float_or_none(student['final_exam']),
+                    observation = to_float_or_none(student['observation']),
+                )
+
                 new_student = Student(
                     student_id = student['id'],
                     classroom_id = new_classroom.classroom_id,
@@ -170,10 +178,12 @@ def populate_database(db: Session, file_id:str , data:dict) -> None:
                     last_name = student['last_name'],
                     first_name = student['first_name'],
                     date_birth = student['date_of_birth'],
-                    evaluation = to_float_or_none(student['evaluation']),
-                    first_assignment = to_float_or_none(student['first_assignment']),
-                    final_exam = to_float_or_none(student['final_exam']),
-                    observation = to_float_or_none(student['observation']),
+                    # i want to group evaluation and f assign + final exam + observation in one cluster grades : {field:value, field:value, ....}
+                    grades = student_grades
+                    #evaluation = to_float_or_none(student['evaluation']),
+                    #first_assignment = to_float_or_none(student['first_assignment']),
+                    #final_exam = to_float_or_none(student['final_exam']),
+                    #observation = to_float_or_none(student['observation']),
                 )
                 db.add(new_student)
         except Exception as e:
@@ -254,7 +264,7 @@ async def get_all_classrooms(db:Session = Depends(get_db), current_user: str = D
     """
     Endpoint to list all the user's classrooms
     """
-    file = db.query(UploadedFile).filter(User.id==current_user).first()
+    file = db.query(UploadedFile).filter(UploadedFile.user_id==current_user).first()
     classrooms = db.query(Classroom).filter(Classroom.file_id==file.file_id).all()
     return classrooms
 
@@ -275,7 +285,7 @@ async def get_all_classrooms(classroom_id: int, db:Session = Depends(get_db), cu
     """
     Endpoint to list all in a specific classroom
     """
-    file = db.query(UploadedFile).filter(User.id==current_user).first()
+    file = db.query(UploadedFile).filter(UploadedFile.user_id==current_user).first()
     classroom = db.query(Classroom).filter(Classroom.file_id==file.file_id, Classroom.classroom_id == classroom_id).first()
     students = db.query(Student).filter(Student.classroom_id == classroom.classroom_id).all()
     return students
@@ -283,7 +293,7 @@ async def get_all_classrooms(classroom_id: int, db:Session = Depends(get_db), cu
 @router.get("/classrooms/students/{student_id}", summary="returns a specific student")
 async def get_all_classrooms(student_id, db:Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     """
-    Endpoint to get specific classroom
+    Endpoint to get specific student
     """
     file = db.query(UploadedFile).filter(User.id==current_user).first()
     #logger.info(file.classrooms[0].classroom_id)
@@ -346,4 +356,57 @@ async def signout_user(data, db: Session = Depends(get_db), current_user=Depends
         status_code=status.HTTP_200_OK
     )
 
+
+# ===============================
+# GRADES ENDPOINTS
+# ===============================
+@router.put("/grades/students/{student_id}", summary="Update a student's grade")
+async def update_grade(
+                student_id:str,
+                grades: GradeUpdate,
+                db: Session = Depends(get_db),
+                current_user=Depends(get_current_user)
+                ):
+    """ Endpoint to update the student's grade."""
+
+    try:
+        logger.info(f"Current user ID: {current_user}")
+        logger.info(f"Student id: {student_id}")
+        logger.info(f"New student's grades: {grades}")
+
+        user = db.query(User).filter_by(id=current_user).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        file = db.query(UploadedFile).filter(UploadedFile.user_id == current_user.id).first()
+        if not file:
+                raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        student = db.query(Student).filter_by(student_id=student_id).first()
+
+        student.grades = grades.evaluation
+        student.first_assignment = grades.first_assignment
+        student.final_exam = grades.final_exam
+        student.observation = grades.observation
+
+        logger.info(f'{student}')
+        
+
+        # Commit the change
+        db.commit()
+        db.refresh(student)
+
+        return {"message": "Grade updated successfully", "student_id": student_id, "new_grade": grades}
     
+    except Exception as e:
+        logger.error(f"Error updating grade: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+    
+
