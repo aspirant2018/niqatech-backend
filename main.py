@@ -2,13 +2,13 @@
 # HTTPException: for returning errors to the client.
 # BaseModel: for validating request bodies (Pydantic).
 # id_token and grequests: from Google's Python SDK, to verify tokens.
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 import uvicorn
 import logging
-from routers import auth, users, status, me
+from app.v1.routers import auth, users, status, me
 
-from fastapi.openapi.utils import get_openapi
 
 
 logger = logging.getLogger("__main.py__")
@@ -48,10 +48,10 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
-app.include_router(status.router)
-app.include_router(auth.router)
-app.include_router(users.router)
-app.include_router(me.router)
+app.include_router(status.router, prefix="/v1")
+app.include_router(auth.router, prefix="/v1")
+app.include_router(users.router, prefix="/v1")
+app.include_router(me.router, prefix="/v1")
 
 
 
