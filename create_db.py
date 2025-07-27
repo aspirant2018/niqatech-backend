@@ -1,5 +1,5 @@
-from database.database import Base, engine
-from database import models  # make sure all models are imported here
+from app.database.database import Base, engine
+from app.database import models  # make sure all models are imported here
 
 # This will create all tables defined in models.py
 

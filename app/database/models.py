@@ -28,7 +28,6 @@ class User(Base):
     academic_level = Column(Enum(AcademicLevelEnum), nullable=False)
     city = Column(String, nullable=False)
     subject = Column(String, nullable=False)
-
     file = relationship("UploadedFile", back_populates="user", uselist=False) # Uselist => Ensures it's a one-to-one relationship, Back populate => biderectional
     
     def __repr__(self):
