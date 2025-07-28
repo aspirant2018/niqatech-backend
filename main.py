@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 import uvicorn
 import logging
-from app.v1.routers import auth, users, status, me
+from app.v1.routers import auth, users, status, me, assistant
 
 
 
@@ -59,6 +59,8 @@ app.include_router(users.router,
                    )
 app.include_router(me.router,
                    #prefix="/v1"
+                   )
+app.include_router(assistant.router
                    )
 
 
