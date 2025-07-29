@@ -26,57 +26,6 @@ router = APIRouter(
 )
 
 
-
-# ===============================
-# 👤 USER PROFILE ENDPOINTS
-# ===============================
-@router.get("/profile",summary="return the current user profile")
-async def get_current_user_profile(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
-
-    """ Endpoint to get the current user's profile."""
-    
-    logger.info(f"Fetching profile for user ID: {current_user}")
-    user = db.query(User).filter(User.id == current_user).first()
-    if not user:
-        logger.error(f"User with ID {current_user} not found.")
-        raise HTTPException(status_code=404, detail="User not found")
-
-
-    payload = {
-        "email": user.email,
-        "first_name": user.first_name,
-        "last_name": user.last_name,
-        "school_name": user.school_name,
-        "academic_level": user.academic_level.value,
-        "city": user.city,
-        "subject": user.subject
-    } 
-    return JSONResponse(
-        content = payload,
-        status_code = status.HTTP_200_OK
-    )
-
-
-# ===============================
-# 🔐 AUTHENTICATION ENDPOINTS
-# ===============================
-@router.post("/logout", summary="signs out current user")
-async def signout_user(data, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
-    """ Endpoint to sign out the current user."""
-    
-    logger.info(f"Signing out user ID: {current_user}")
-    logger.info(f"Data received for sign out: {data}")
-
-    # Here you would typically invalidate the user's session or JWT token.
-    # Since this is a stateless API, we just return a success message.
-
-
-    return JSONResponse(
-        content={"message": "User signed out successfully"},
-        status_code=status.HTTP_200_OK
-    )
-
-
 # ===============================
 # 📁 students ENDPOINTS
 # ===============================

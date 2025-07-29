@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 import uvicorn
 import logging
-from app.v1.routers import auth, users, status, me, assistant
+from app.v1.routers import auth, users, status, me, assistant, file, classrooms, students
 
 
 
@@ -62,7 +62,14 @@ app.include_router(me.router,
                    )
 app.include_router(assistant.router
                    )
+app.include_router(file.router
+                   )
 
+app.include_router(classrooms.router
+                   )
+
+app.include_router(students.router
+                   )
 
 
 if __name__ == "__main__":
