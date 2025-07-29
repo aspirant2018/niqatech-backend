@@ -13,6 +13,9 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 import logging
 import xlrd
+import os
+from langchain.chat_models import init_chat_model
+    
 
 
 logging.basicConfig(
@@ -45,36 +48,27 @@ async def reponse(query: Query):
     """
     Endpoint to chat with an AI assistant (tools: RAGs)
     """
-    import getpass
-    import os
-    from langchain.chat_models import init_chat_model
-    
+
 
     if not os.environ.get("OPENAI_API_KEY"):
         logger.error("OPENAI_API_KEY is not set in the environment variables.")
         
 
-    
-
     model = init_chat_model(model="gpt-3.5-turbo-0125",model_provider="openai")
-    #model.set_streaming(True)
-    response = await model.ainvoke(
+    response = model.astream(
         input=query.message,
     )
-    logger.info(f"Streaming response for query: {response.content}")
-    
+    logger.info(f"Streaming response for query: {response}")
+    if not response:
+        logger.error("No response received from the model.")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get a response from the AI assistant."
+        )
+    return StreamingResponse(send_completion_events(response), media_type="text/event-stream")
 
-    return StreamingResponse(generate(), media_type="text/event-stream")
 
 
-
-import json
-
-async def send_completion_events(messages, chat):
-    async for patch in chat.astream_log(messages):
-        for op in patch.ops:
-            if op["op"] == "add" and op["path"] == "/streamed_output/-":
-                content = op["value"] if isinstance(op["value"], str) else op["value"].content
-                json_dict = {"type": "llm_chunk", "content": content}
-                json_str = json.dumps(json_dict)
-                yield f"data: {json_str}\\n\\n"
+async def send_completion_events(response):
+    async for chunk in response:
+        yield f"{chunk.content}|"
