@@ -7,3 +7,6 @@ fastapi
 uvicorn
 requests
 pydantic[email]
+python-dotenv
+langchain
+langchain-openai
