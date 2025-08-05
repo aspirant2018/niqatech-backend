@@ -47,15 +47,16 @@ embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
 #    for i in range(5):
 #        yield f"data: message {i}\n\n"
 import chromadb
-from langchain_chroma import Chroma
+# from langchain_chroma import Chroma
 
-
+'''
 
 vector_store = Chroma(
     collection_name="laws_collection",
     embedding_function=embeddings,
     persist_directory="./chroma_langchain_db",
 )
+'''
 
 
 client = chromadb.PersistentClient(path="./chroma_langchain_db")
