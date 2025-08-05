@@ -10,3 +10,5 @@ pydantic[email]
 python-dotenv
 langchain
 langchain-openai
+chromadb
+openai
