@@ -96,6 +96,7 @@ async def upload_file(
                 ignore_workbook_corruption=True,
                 formatting_info=True
             )
+            # from app.v1.utils
             data = parse_xls(workbook)
         except Exception as parse_error:
             logger.error(f"Error parsing XLS file: {str(parse_error)}")
@@ -103,6 +104,10 @@ async def upload_file(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail= f"Error parsing XLS file: {str(parse_error)}"
             )
+        
+        level_from_file =  data.get('classrooms')[0].get("level")
+        logger.info(f"Level from file: {level_from_file}")
+        level_from_user = ""
         
         # Database transaction
         try:
@@ -121,6 +126,7 @@ async def upload_file(
             return {
                 "file_id": str(uploaded_file.file_id),
                 "num_classrooms": len(data["classrooms"]),
+                "data": data,
                 }
     
         except SQLAlchemyError as db_error:

@@ -24,7 +24,7 @@ def parse_xls(workbook):
             #"school_name": sheet.row_values(3)[0],
             #"term": term,
             #"year": year,
-            #"level": level,
+            "level": level,
             #"subject": subject,
             #"classroom_id": f"Sheet-{i}",
             "sheet_name": sheet_name,

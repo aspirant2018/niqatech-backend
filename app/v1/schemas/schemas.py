@@ -67,6 +67,7 @@ class FileUploadResponse(BaseModel):
     message: str = Field(default="XLS file parsed successfully", description="Operation successful message")
     file_id: str = Field(description="The uploaded file id")
     num_classrooms: int = Field(description="The number of classrooms in the uploaded file (i.e., sheets)")
+    data: dict = Field(description="The parsed data from the XLS file, including classrooms and students")
 
 
 
