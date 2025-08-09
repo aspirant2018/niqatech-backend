@@ -65,8 +65,6 @@ async def upload_file(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid file type. Only .xls files are allowed."
             )
-
-    
     try:   
         content = await file.read()
         if len(content) > MAX_FILE_SIZE:
@@ -78,7 +76,6 @@ async def upload_file(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Empty file is provided")
-
 
         # Check if user already has a file
         existing_file = db.query(UploadedFile).filter_by(user_id=current_user).first()
@@ -105,6 +102,7 @@ async def upload_file(
                 detail= f"Error parsing XLS file: {str(parse_error)}"
             )
         
+        # Check the mismatch of academic level
         level_from_file =  data.get('classrooms')[0].get("level")
         level_from_user = db.query(User).filter_by(id=current_user).first().academic_level.value
 
