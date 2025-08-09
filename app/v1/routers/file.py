@@ -106,9 +106,20 @@ async def upload_file(
             )
         
         level_from_file =  data.get('classrooms')[0].get("level")
+        level_from_user = db.query(User).filter_by(id=current_user).first().academic_level.value
+
         logger.info(f"Level from file: {level_from_file}")
-        level_from_user = ""
-        
+        logger.info(f"Level from user: {level_from_user}")
+
+        logger.info(f"{'متوسط' in level_from_file}")
+        logger.info(f"{level_from_user == 'secondary'}")
+
+        if ("متوسط" not in level_from_file or level_from_user != "secondary"):
+            logger.error(f"Academic level mismatch: {level_from_file} vs {level_from_user}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Academic level mismatch: the level from the file:{level_from_file} vs the level provided by the user:{level_from_user}"
+            )        
         # Database transaction
         try:
             # Create uploaded file record
