@@ -21,6 +21,7 @@ class ProfileData(BaseModel):
     academic_level: str
     city: str
     subject: str
+    
 
 
 class ItemResponse(BaseModel):

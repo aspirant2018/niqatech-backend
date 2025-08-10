@@ -97,7 +97,8 @@ async def register(
 
     logger.info("Registration data received from frontend.")
     logger.info(f"Current user ID: {current_user}")
-    # check if the user already exists
+    # check if the user already 
+    
     logger.info(f"Email: {email}, First Name: {first_name}, Last Name: {last_name}, "
                 f"School Name: {school_name}, Academic Level: {academic_level}, "
                 f"City: {city}, Subject: {subject}")

@@ -70,7 +70,6 @@ async def send_completion_events(response):
     async for chunk in response:
         yield f"{chunk.content}"
 
-# rien
 
 @router.post("/chat/reponse", summary="upload an XLS file")
 async def reponse(query: Query):
