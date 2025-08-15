@@ -74,8 +74,7 @@ async def get_all_classrooms(
                 "name": classroom.file_id,
                 "sheet_name": classroom.sheet_name,  # add other fields you want
                 "number_of_students": classroom.number_of_students,
-            },
-            "students": [
+                "students": [
                 {
                     "student_id": s.student_id,
                     "row": s.row,
@@ -89,6 +88,7 @@ async def get_all_classrooms(
                     "observation": s.observation,
                 } for s in students
             ]
+            },
         }
         result.append(classroom_info)
 

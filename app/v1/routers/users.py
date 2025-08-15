@@ -45,14 +45,52 @@ def populate_database(db: Session, file_id:str , data:dict) -> None:
     if not classrooms:
         logger.warning(f'No classrooms found in parsed data')
         return 
+    # 
+    #
+    #
+    #
+    # THE CLASSROOM MODEL
+    # ===============================
+    # class Classroom(Base):
+    # __tablename__ = "classrooms"
+
+    # classroom_id = Column(Integer, primary_key=True,index=True) 
+    # file_id = Column(UUID(as_uuid=True), ForeignKey(UploadedFile.file_id, ondelete="CASCADE"), nullable=False)
+    # sheet_name = Column(String, nullable=False)
+    # number_of_students = Column(Integer,nullable=False)
+
+    # students = relationship(
+    #    "Student",
+    #    back_populates="classroom",
+    #    cascade="all, delete-orphan",
+    #    passive_deletes=True
+    #)
+    # file = relationship("UploadedFile", back_populates="classrooms")
+
+    #  WHAT I WANT TO ADD ARE THE FOLLOWING FIELDS
+        # "school_name": "متوسطة مرزقان محمد المدعو معمر (قصر الصباحي)",
+        # "term": "الأول",
+        # "year": "2020-2021",
+        # "level": "أولى  متوسط    1",
+        # "subject": "المعلوماتية",
+        # "classroom_name": "Sheet-0",
+        # "sheet_name": "2100001_1",
+
 
     for classroom in classrooms:
         try:
         # Create classroom
             new_classroom = Classroom(
                 file_id=file_id,
+                school_name=classroom.get("school_name", "Unknown"),
+                term=classroom.get("term", "Unknown"),
+                year=classroom.get("year", "Unknown"),
+                level=classroom.get("level", "Unknown"),
+                subject=classroom.get("subject", "Unknown"),
+                classroom_name=classroom.get("classroom_name", "Unknown"),
                 sheet_name=classroom.get("sheet_name", "Unknown"),
-                number_of_students=classroom.get("number_of_students", 0)
+                number_of_students=classroom.get("number_of_students", 0),
+
             )
             
             db.add(new_classroom)
@@ -78,6 +116,8 @@ def populate_database(db: Session, file_id:str , data:dict) -> None:
                 db.add(new_student)
         except Exception as e:
             logger.error(f"Error processing classroom {classroom.get('sheet_name', 'Unknown')}: {str(e)}")
+    
+    logger.info(f"Successfully processed {len(classrooms)} classrooms")
 
 # create/register a user
 @router.post("/register",summary="Register a new user")

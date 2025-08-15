@@ -53,12 +53,27 @@ class UploadedFile(Base):
         return f"<file(file_id={self.file_id}>"
 
 
+#  WHAT I WANT TO ADD ARE THE FOLLOWING FIELDS
+
+        # "school_name": "متوسطة مرزقان محمد المدعو معمر (قصر الصباحي)",
+        # "term": "الأول",
+        # "year": "2020-2021",
+        # "level": "أولى  متوسط    1",
+        # "subject": "المعلوماتية",
+        # "classroom_name": "Sheet-0",
+        # "sheet_name": "2100001_1",
 
 class Classroom(Base):
     __tablename__ = "classrooms"
 
     classroom_id = Column(Integer, primary_key=True,index=True) 
     file_id = Column(UUID(as_uuid=True), ForeignKey(UploadedFile.file_id, ondelete="CASCADE"), nullable=False)
+    school_name = Column(String, nullable=False)
+    term = Column(String, nullable=False)
+    year = Column(String, nullable=False)
+    level = Column(String, nullable=False)
+    subject = Column(String, nullable=False)
+    classroom_name = Column(String, nullable=False) 
     sheet_name = Column(String, nullable=False)
     number_of_students = Column(Integer,nullable=False)
 

@@ -21,12 +21,12 @@ def parse_xls(workbook):
         subject = re.search(r"مادة\s*:\s*(.+)", text).group(1).strip()
 
         classroom = {
-            #"school_name": sheet.row_values(3)[0],
-            #"term": term,
-            #"year": year,
+            "school_name": sheet.row_values(3)[0],
+            "term": term,
+            "year": year,
             "level": level,
-            #"subject": subject,
-            #"classroom_id": f"Sheet-{i}",
+            "subject": subject,
+            "classroom_id": f"Sheet-{i}",
             "sheet_name": sheet_name,
             "number_of_students": sheet.nrows - 8,
             "students": []  # Store students in a list
