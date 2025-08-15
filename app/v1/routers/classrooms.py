@@ -30,14 +30,71 @@ router = APIRouter(
 # ===============================
 # 📁 Classroom ENDPOINTS
 # ===============================
-@router.get("/classrooms", summary="returns the list all the user's classrooms")
-async def get_all_classrooms(db:Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+@router.get("/classrooms", summary="returns the list of all the user's classrooms")
+async def get_all_classrooms(
+                            db:Session = Depends(get_db),
+                            current_user: str = Depends(get_current_user)
+                            ):
     """
-    Endpoint to list all the user's classrooms
+    Endpoint to list all the user's classrooms.
     """
     file = db.query(UploadedFile).filter(UploadedFile.user_id==current_user).first()
     classrooms = db.query(Classroom).filter(Classroom.file_id==file.file_id).all()
-    return classrooms
+    students = db.query(Student).filter(Student.classroom_id.in_([c.classroom_id for c in classrooms])).all()
+
+    # Prepare the result
+    result = []
+
+    for classroom in classrooms:
+        # Get students in this classroom
+        students = db.query(Student).filter(Student.classroom_id == classroom.classroom_id).all()
+
+
+        # classroom_id = Column(Integer, primary_key=True,index=True) 
+        # file_id = Column(UUID(as_uuid=True), ForeignKey(UploadedFile.file_id, ondelete="CASCADE"), nullable=False)
+        # sheet_name = Column(String, nullable=False)
+        # number_of_students = Column(Integer,nullable=False)
+
+
+        # student_id = Column(String, primary_key=True)
+        # classroom_id = Column(String, ForeignKey(Classroom.classroom_id, ondelete="CASCADE"), nullable=False)
+        # row = Column(Integer, nullable=False)
+        # last_name = Column(String, nullable=False)
+        # first_name = Column(String, nullable=False)
+        # date_birth = Column(String, nullable=False)
+        # evaluation = Column(Float)
+        # first_assignment = Column(Float)
+        # final_exam = Column(Float)
+        # observation = Column(String)
+
+        # Convert classroom and students to dictionaries
+        classroom_info = {
+            "classroom": {
+                "classroom_id": classroom.classroom_id,
+                "name": classroom.file_id,
+                "sheet_name": classroom.sheet_name,  # add other fields you want
+                "number_of_students": classroom.number_of_students,
+            },
+            "students": [
+                {
+                    "student_id": s.student_id,
+                    "row": s.row,
+                    "classroom_id": s.classroom_id,
+                    "last_name": s.last_name,
+                    "first_name": s.first_name,
+                    "date_of_birth": s.date_birth,
+                    "evaluation": s.evaluation,
+                    "first_assignment": s.first_assignment,
+                    "final_exam": s.final_exam,
+                    "observation": s.observation,
+                } for s in students
+            ]
+        }
+        result.append(classroom_info)
+
+    logger.info(f'Returning data for {len(classrooms)} classrooms')
+    logger.info(f'Found {len(classrooms)} classrooms for user {current_user}')
+    return result
 
 @router.get("/classrooms/{classroom_id}", summary="returns a specific classroom")
 async def get_classroom(classroom_id, db:Session = Depends(get_db), current_user: str = Depends(get_current_user)):

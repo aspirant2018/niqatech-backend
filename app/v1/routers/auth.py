@@ -52,9 +52,13 @@ async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
             GOOGLE_CLIENT_ID
         )
 
+        logger.info(f"ID info: {id_info}")
+
         # Extract user info
         user_id = id_info['sub']
         email   = id_info['email']
+
+        logger.info(f"User ID: {user_id}, Email: {email}")
         
         users = db.query(User).all()
         app_jwt_token = generate_jwt_token(user_id, SECRET_KEY, ALGORITHM)
