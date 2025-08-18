@@ -84,10 +84,13 @@ async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
         
         # If user exists, return user info
         logger.info(f"User with ID {user_id} found in the database.")
+        
         return {
             "message": "User authenticated successfully",
             "user_id": user_id,
             "email": email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
             "is_profile_complete": True,
             "jwt_token": app_jwt_token,
         }
@@ -96,3 +99,46 @@ async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid ID token")
 
 
+
+@router.post("/login")
+async def login(token_data: TokenData, db: Session = Depends(get_db)):
+    """
+    Login user with JWT token.
+    """
+    
+    logger.info("Login request received.")
+    logger.info(f"Token data: {token_data}")
+
+    try:
+        # Decode the JWT token
+        payload = jwt.decode(token_data.token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        email = payload.get("email")
+
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token")
+
+        user = db.query(User).filter(User.id == user_id).first()
+
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        logger.info(f"User {user.email} logged in successfully.")
+        
+        return {
+            "message": "User logged in successfully",
+            "user_id": user.id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "school_name": user.school_name,
+            "academic_level": user.academic_level,
+            "city": user.city,
+            "subject": user.subject,
+            "is_profile_complete": True,
+            "jwt_token": token_data.token
+        }
+
+    except jwt.JWTError as e:
+        logger.error(f"JWT error: {e}")
+        raise HTTPException(status_code=401, detail="Invalid token")
