@@ -110,15 +110,26 @@ async def login(token_data: TokenData, db: Session = Depends(get_db)):
     logger.info(f"Token data: {token_data}")
 
     try:
-        # Decode the JWT token
-        payload = jwt.decode(token_data.token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")
-        email = payload.get("email")
+        # Verify the token
+        id_info = id_token.verify_oauth2_token(
+            token_data.token,
+            grequests.Request(),
+            GOOGLE_CLIENT_ID
+        )
+
+        logger.info(f"ID info: {id_info}")
+
+        # Extract user info
+        user_id = id_info['sub']
+        email   = id_info['email']
+
+        logger.info(f"User ID: {user_id}, Email: {email}")
+ 
 
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token")
 
-        user = db.query(User).filter(User.id == user_id).first()
+        user = db.query(User).filter(User.email == email).first()
 
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -136,7 +147,7 @@ async def login(token_data: TokenData, db: Session = Depends(get_db)):
             "city": user.city,
             "subject": user.subject,
             "is_profile_complete": True,
-            "jwt_token": token_data.token
+            "jwt_token": generate_jwt_token(user_id, SECRET_KEY, ALGORITHM)
         }
 
     except jwt.JWTError as e:
