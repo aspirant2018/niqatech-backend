@@ -38,30 +38,21 @@ import getpass
 import os
 
 
-from langchain_openai import OpenAIEmbeddings
+# from langchain_openai import OpenAIEmbeddings
 
-embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+# embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
 
 # from langchain_core import 
 #def generate():
 #    for i in range(5):
 #        yield f"data: message {i}\n\n"
-import chromadb
+# import chromadb
 # from langchain_chroma import Chroma
 
-'''
 
-vector_store = Chroma(
-    collection_name="laws_collection",
-    embedding_function=embeddings,
-    persist_directory="./chroma_langchain_db",
-)
-'''
+# client = chromadb.PersistentClient(path="./chroma_langchain_db")
 
-
-client = chromadb.PersistentClient(path="./chroma_langchain_db")
-
-collection = client.get_or_create_collection("laws_collection")
+# collection = client.get_or_create_collection("laws_collection")
         
 class Query(BaseModel):
     query: str
@@ -79,21 +70,22 @@ async def reponse(query: Query):
     if not os.environ.get("OPENAI_API_KEY"):
         logger.error("OPENAI_API_KEY is not set in the environment variables.")
         
-
+    logger.info(f"Streaming response for query: {query}")
     model = init_chat_model(model="gpt-3.5-turbo-0125",model_provider="openai")
 
-    results = vector_store.similarity_search_by_vector(
-        embedding=embeddings.embed_query(query.query), k=5)    #for res in results:
+
+    # results = vector_store.similarity_search_by_vector(
+    #      embedding=embeddings.embed_query(query.query), k=5)    #for res in results:
         #logger.info(f"* {res.page_content} [{res.metadata}]")
 
-    context = "\n".join([f"{res.page_content} [{res.metadata}]" for res in results])
+    # context = "\n".join([f"{res.page_content} [{res.metadata}]" for res in results])
 
-    user_message = f"Context:\n{context}\n\nUser Query: {query.query}"
+    # user_message = f"Context:\n{context}\n\nUser Query: {query.query}"
 
     response = model.astream(
-        input=user_message,
+        input=query.query,
     )
-    logger.info(f"Streaming response for query: {context}")
+    
     if not response:
         logger.error("No response received from the model.")
         raise HTTPException(
@@ -101,7 +93,7 @@ async def reponse(query: Query):
             detail="Failed to get a response from the AI assistant."
         )
     return StreamingResponse(send_completion_events(response), media_type="text/event-stream")
-
+'''
 @router.post("/file/upload", summary="upload files")
 async def reponse(file: UploadFile = File(...)):
     """
@@ -239,3 +231,4 @@ def extract_articles_with_chapters(text):
         })
 
     return {"output": results}
+'''
