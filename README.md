@@ -35,10 +35,11 @@ A speech-to-text application that allows teachers to verbally input grades, whic
 
     running on http://localhost:8000 
 
-## Run easily with docker
-    ```bash
-    docker compose up -d
-    ```
+## 🚀 Run with Docker
+
+1. **Start the backend**
+   ```bash
+   docker compose up -d
 
 
 
