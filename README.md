@@ -35,6 +35,13 @@ A speech-to-text application that allows teachers to verbally input grades, whic
 
     running on http://localhost:8000 
 
+## Run easily with docker
+    ```bash
+    docker compose up -d
+    ```
+
+
+
 ## ✅ How to Test the Endpoints
 
 FastAPI provides an interactive API documentation where you can explore and test all available endpoints easily.
