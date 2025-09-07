@@ -95,7 +95,6 @@ async def upload_file(
             )
             # from app.v1.utils
             data = parse_xls(workbook)
-            logger.info(f"Parsed data: {data}")
 
         except Exception as parse_error:
             logger.error(f"Error parsing XLS file: {str(parse_error)}")

@@ -62,8 +62,8 @@ async def send_completion_events(response):
         yield f"{chunk.content}"
 
 
-@router.post("/chat/reponse", summary="upload an XLS file")
-async def reponse(query: Query):
+@router.post("/chat/reponse", summary="chat with the AI assistant")
+async def reponse(query: Query, db: Session = Depends(get_db)):
     """
     Endpoint to chat with an AI assistant (tools: RAGs)
     """
@@ -73,7 +73,7 @@ async def reponse(query: Query):
     logger.info(f"Streaming response for query: {query}")
     model = init_chat_model(model="gpt-3.5-turbo-0125",model_provider="openai")
 
-
+    
     # results = vector_store.similarity_search_by_vector(
     #      embedding=embeddings.embed_query(query.query), k=5)    #for res in results:
         #logger.info(f"* {res.page_content} [{res.metadata}]")

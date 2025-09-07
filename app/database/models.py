@@ -66,7 +66,7 @@ class UploadedFile(Base):
 class Classroom(Base):
     __tablename__ = "classrooms"
 
-    classroom_id = Column(Integer, primary_key=True,index=True) 
+    classroom_id = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
     file_id = Column(UUID(as_uuid=True), ForeignKey(UploadedFile.file_id, ondelete="CASCADE"), nullable=False)
     school_name = Column(String, nullable=False)
     term = Column(String, nullable=False)
@@ -93,8 +93,9 @@ class Classroom(Base):
 
 class Student(Base):
     __tablename__ = "students"
-
-    student_id = Column(String, primary_key=True)
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    student_id = Column(String)
     classroom_id = Column(String, ForeignKey(Classroom.classroom_id, ondelete="CASCADE"), nullable=False)
     row = Column(Integer, nullable=False)
     last_name = Column(String, nullable=False)
@@ -108,14 +109,14 @@ class Student(Base):
 
     classroom = relationship("Classroom", back_populates="students")
 
-    __table_args__=(
-        CheckConstraint('evaluation >= 0 AND evaluation <=20',name='Check_Evaluation_range'),
-        CheckConstraint('first_assignment >= 0 AND first_assignment <=20',name='Check_Evaluation_range'),
-        CheckConstraint('final_exam >= 0 AND final_exam <=20',name='Check_Evaluation_range'),
+    
+    __table_args__ = (
+        CheckConstraint("evaluation >= 0 AND evaluation <= 20", name="Check_Evaluation_range_eval"),
+        CheckConstraint("first_assignment >= 0 AND first_assignment <= 20", name="Check_Evaluation_range_first"),
+        CheckConstraint("final_exam >= 0 AND final_exam <= 20", name="Check_Evaluation_range_final"),
     )
-
     def __repr__(self):
-        return f"<student(student_id={self.student_id}>, evaluation={self.evaluation}"
+        return f"<student(student_id={self.student_id}>, evaluation={self.evaluation}, first_assignment={self.first_assignment}, final_exam={self.final_exam})"
 
 
 

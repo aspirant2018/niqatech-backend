@@ -12,8 +12,20 @@ from pydantic import BaseModel
 import logging
 import xlrd
 
+print("=== STUDENTS.PY FILE LOADED ===")
 
-logger = logging.getLogger("uvicorn")  # <--- use uvicorn's logger
+# Configure logger for this module
+logger = logging.getLogger(__name__)
+
+# Ensure the logger level is set (this can also be done globally)
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
 
 router = APIRouter(
     prefix="/me",
@@ -26,7 +38,7 @@ router = APIRouter(
 # 📁 students ENDPOINTS
 # ===============================
 @router.put("/students/{student_id}/grades", summary="Update a student's grade")
-async def update_grade(
+async def update_student_grade(
                 student_id:str,
                 grades: BulkGradeUpdate,
                 db: Session = Depends(get_db),
@@ -61,8 +73,7 @@ async def update_grade(
         student.observation = grades.observation
 
         logger.info(f'{student}')
-        
-
+    
         # Commit the change
         db.commit()
         db.refresh(student)
@@ -76,7 +87,7 @@ async def update_grade(
     
 
 @router.get("/students/{student_id}", summary="returns a specific student")
-async def get_all_classrooms(student_id, db:Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+async def get_student_by_id(student_id, db:Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     """
     Endpoint to get specific student
     """
@@ -90,9 +101,9 @@ async def get_all_classrooms(student_id, db:Session = Depends(get_db), current_u
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
-    logger.info(f"Type file: {type(file)}")
-    logger.info(f"File: {file.classrooms[0].classroom_id}")
-    logger.info(f"File: {file.classrooms[0].students[0].student_id}")
+    print(f"Type file: {type(file)}")
+    print(f"File: {file.classrooms[0].classroom_id}")
+    print(f"File: {file.classrooms[0].students[0].student_id}")
 
     classroom_subquery = db.query(Classroom.classroom_id).filter(
         Classroom.file_id == file.file_id

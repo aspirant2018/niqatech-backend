@@ -135,7 +135,9 @@ async def login(token_data: TokenData, db: Session = Depends(get_db)):
             raise HTTPException(status_code=404, detail="User not found")
 
         logger.info(f"User {user.email} logged in successfully.")
+
         
+
         return {
             "message": "User logged in successfully",
             "user_id": user.id,

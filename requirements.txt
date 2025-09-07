@@ -13,3 +13,4 @@ langchain-openai
 chromadb
 openai
 psycopg2-binary
+pytest
