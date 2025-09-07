@@ -13,11 +13,7 @@ import logging
 import xlrd
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger("__routers/me.py__")
+logger = logging.getLogger("uvicorn")  # <--- use uvicorn's logger
 
 router = APIRouter(
     prefix="/me",
@@ -84,12 +80,25 @@ async def get_all_classrooms(student_id, db:Session = Depends(get_db), current_u
     """
     Endpoint to get specific student
     """
-    file = db.query(UploadedFile).filter(User.id==current_user).first()
-    #logger.info(file.classrooms[0].classroom_id)
+
+    logger.info(f"Current user ID: {current_user}")
+    logger.info(f"Student id: {student_id}")
+
+    file = db.query(UploadedFile).filter(UploadedFile.user_id==current_user).first()
+    if not file:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    logger.info(f"Type file: {type(file)}")
+    logger.info(f"File: {file.classrooms[0].classroom_id}")
+    logger.info(f"File: {file.classrooms[0].students[0].student_id}")
 
     classroom_subquery = db.query(Classroom.classroom_id).filter(
         Classroom.file_id == file.file_id
     )
+
+
     student = db.query(Student).filter(
         Student.classroom_id.in_(classroom_subquery),
         Student.student_id == student_id
