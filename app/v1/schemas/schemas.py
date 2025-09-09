@@ -82,3 +82,18 @@ class StudentGradeUpdate(BaseModel):
 
 class BulkGradeUpdate(BaseModel):
     classroom_grades: List[StudentGradeUpdate] = Field(..., min_items=1, description="List of student grade updates")
+
+
+
+class LoginResponse(BaseModel):
+    message: str
+    user_id: str
+    email: str
+    first_name: str
+    last_name: str
+    school_name: str
+    academic_level: str
+    city: str
+    subject: str
+    is_profile_complete: bool
+    jwt_token: str
