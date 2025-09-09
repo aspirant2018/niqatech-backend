@@ -5,16 +5,19 @@ from fastapi.responses import JSONResponse
 
 
 from app.v1.schemas.schemas import ProfileData
+from app.v1.auth.dependencies import get_current_user
+from app.v1.utils import parse_xls, to_float_or_none
+
+
 from app.database.database import get_db
 from app.database.models import User
-from app.v1.auth.dependencies import get_current_user
+from app.database.models import UploadedFile, User, Classroom, Student
+
 from typing import Optional
 
 from sqlalchemy.orm import Session
 import logging
-from app.v1.utils import parse_xls, to_float_or_none
 import xlrd
-from app.database.models import UploadedFile, User, Classroom, Student
 from sqlalchemy.exc import SQLAlchemyError
 from pydantic import BaseModel
 

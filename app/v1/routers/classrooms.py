@@ -39,8 +39,14 @@ async def get_all_classrooms(
     Endpoint to list all the user's classrooms.
     """
     file = db.query(UploadedFile).filter(UploadedFile.user_id==current_user).first()
-    classrooms = db.query(Classroom).filter(Classroom.file_id==file.file_id).all()
-    students = db.query(Student).filter(Student.classroom_id.in_([c.classroom_id for c in classrooms])).all()
+    if file is None:
+        raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail= "No existing file. please upload file first"
+            )
+    
+    classrooms  = db.query(Classroom).filter(Classroom.file_id==file.file_id).all()
+    students    = db.query(Student).filter(Student.classroom_id.in_([c.classroom_id for c in classrooms])).all()
 
     # Prepare the result
     result = []

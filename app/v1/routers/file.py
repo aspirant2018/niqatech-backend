@@ -105,7 +105,6 @@ async def upload_file(
         
         # Check the mismatch of academic level
         level_from_file =  data.get('classrooms')[0].get("level")
-        
         level_from_user = db.query(User).filter_by(id=current_user).first().academic_level.value
 
         logger.info(f"Level from file: {level_from_file}")
@@ -269,6 +268,7 @@ async def get_file(db:Session = Depends(get_db), current_user: str = Depends(get
     """
     Endpoint to get the filename if it exists from the data base
     """
+    
     try:
         user = db.query(User).filter(User.id == current_user).first()
         if not user:

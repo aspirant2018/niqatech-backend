@@ -45,7 +45,6 @@ async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
     logger.info(f"Token data: {token_data}")
 
     try:
-        # Verify the token
         id_info = id_token.verify_oauth2_token(
             token_data.token,
             grequests.Request(),
@@ -55,13 +54,21 @@ async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
         logger.info(f"ID info: {id_info}")
 
         # Extract user info
-        user_id = id_info['sub']
-        email   = id_info['email']
+        user_id = id_info.get('sub', None)
+        email   = id_info.get('email', None)
+
+        if not user_id or not email:
+            raise HTTPException(status_code=401, detail="Invalid token")
 
         logger.info(f"User ID: {user_id}, Email: {email}")
         
         users = db.query(User).all()
-        app_jwt_token = generate_jwt_token(user_id, SECRET_KEY, ALGORITHM)
+
+        logger.info(f"Number of users in the database: {len(users)}")
+
+        app_jwt_token = generate_jwt_token(user_id,
+                                           SECRET_KEY,
+                                           ALGORITHM)
         user = db.query(User).filter(User.id == user_id).first()
 
         logger.info(f"Users {users}")  # Ensure the database is connected
@@ -73,7 +80,7 @@ async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
 
             logger.info(f"User with ID {user_id} not found in the database. Creating a new user.")
             reponse = {
-                "message": "User first login. Please complete the.",
+                "message": "User first login. Please complete the profile.",
                 "user_id": user_id,
                 "email": email,
                 "is_profile_complete": False,
