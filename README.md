@@ -31,7 +31,7 @@ A speech-to-text application that allows teachers to verbally input grades, whic
 ## Run the Backend Application
 1. it will run on port 8000 
     ```bash
-    python3 app/main.py
+    uvicorn app.main:app --reload
 
     running on http://localhost:8000 
 
@@ -56,7 +56,7 @@ FastAPI provides an interactive API documentation where you can explore and test
 2. Make sur to Create a database:
 
    ```bash
-   python3 database/create_db.py 
+   python3 -m app.create_db 
 
 3. Open your browser to Browse all available endpoints:
    ```bash
