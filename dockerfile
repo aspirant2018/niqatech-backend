@@ -28,4 +28,4 @@ COPY . .
 EXPOSE 8000
 
 # Command to run FastAPI
-CMD ["sh", "-c", "python create_db.py && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"]
+CMD ["sh", "-c", "python3 -m app.create_db.py && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"]

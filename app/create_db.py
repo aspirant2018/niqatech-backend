@@ -8,7 +8,7 @@ _ = models.UploadedFile()
 
 
 print("Deleting database and tables...")
-Base.metadata.drop_all(bind=engine)   # <-- supprime toutes les tables
+Base.metadata.drop_all(bind=engine)   # <-- Delete all tables
 print("Creating database and tables...")
 Base.metadata.create_all(bind=engine)
 print("Done.")

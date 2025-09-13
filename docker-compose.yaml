@@ -22,7 +22,7 @@ services:
       - "8000:8000"
     volumes:
       - ./app:/app/app
-    command: sh -c "python create_db.py && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+    command: sh -c "python3 -m  app.create_db && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
 volumes:
   pgdata:
