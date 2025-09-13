@@ -20,7 +20,7 @@ import logging
 import xlrd
 from sqlalchemy.exc import SQLAlchemyError
 from pydantic import BaseModel
-
+import os
 
 
 logger = logging.getLogger("__routers/users.py__")
@@ -156,9 +156,9 @@ async def register(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid file type. Only .xls files are allowed."
                 )
+        
         # Here you would typically parse the file and extract data.
-        # parse the file
-
+        # parse the fil
         try:   
             content = await file.read()
             if len(content) > MAX_FILE_SIZE:
@@ -186,6 +186,32 @@ async def register(
                 user_id = current_user,
                 file_name = file.filename,
             )
+            # Generate and set storage path
+            uploaded_file.storage_path = uploaded_file.generate_storage_path()
+            logger.info(f"Generated storage path: {uploaded_file.storage_path}")
+            
+            try:
+                # Ensure directory exists
+                storage_dir = os.path.dirname(uploaded_file.storage_path)
+                os.makedirs(storage_dir, exist_ok=True)
+
+                # Save the file
+                with open(uploaded_file.storage_path, 'wb') as f:
+                    f.write(content)
+
+                logger.info(f"File saved successfully at {uploaded_file.storage_path}")
+
+            except OSError as e:
+                # Handles filesystem errors: permission denied, disk full, etc.
+                logger.error(f"Failed to save file at {uploaded_file.storage_path}: {e}")
+                raise RuntimeError(f"Could not save file: {e}") from e
+
+            except Exception as e:
+                # Catch any other unexpected errors
+                logger.error(f"Unexpected error while saving file: {e}")
+                raise RuntimeError(f"Unexpected error: {e}") from e
+
+
         except Exception as e:
             logger.error(f"Error reading file: {str(e)}")
             raise HTTPException(

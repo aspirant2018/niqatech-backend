@@ -6,13 +6,13 @@ Example: A User model with fields like id, email, hashed_password, stored in a d
 '''
 
 
-from sqlalchemy import Column, Integer, String, Boolean, Enum, Float, ForeignKey, UniqueConstraint, CheckConstraint
+from sqlalchemy import Column, Integer, String, Boolean, Enum, Float, ForeignKey, UniqueConstraint, CheckConstraint, DateTime, func
 from sqlalchemy.orm import relationship
 from app.v1.schemas.schemas import AcademicLevelEnum
 import uuid
 from sqlalchemy.dialects.postgresql import UUID
 from app.database.database import Base
-
+import os
 
 
 
@@ -33,12 +33,23 @@ class User(Base):
     def __repr__(self):
         return f"<teacher(id={self.id}, email={self.email}, first_name={self.first_name}, last_name={self.last_name})>"
 
+
+UPLOAD_DIR = "uploads"
+
 class UploadedFile(Base):
     __tablename__ = 'uploaded_files'
 
-    file_id = Column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True, nullable=False)
-    user_id = Column(String, ForeignKey(User.id, ondelete="CASCADE"), unique=True, nullable=False)
-    file_name = Column(String, nullable=False)
+    file_id      = Column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True, nullable=False)
+    user_id      = Column(String, ForeignKey(User.id, ondelete="CASCADE"), unique=True, nullable=False)
+    file_name    = Column(String, nullable=False)
+    storage_path = Column(String, nullable=False) 
+    created_at   = Column(DateTime(timezone=True), 
+                    server_default=func.now(), 
+                    nullable=False)
+    updated_at   = Column(DateTime(timezone=True), 
+                    onupdate=func.now(), 
+                    server_default=func.now(), 
+                    nullable=False)
 
     user = relationship("User", back_populates="file")
 
@@ -48,9 +59,13 @@ class UploadedFile(Base):
         cascade="all, delete-orphan",
         passive_deletes=True
     )
-
+    def generate_storage_path(self) -> str:
+        """Generate a  safe path uploads/unique_file_id_filename.ext"""
+        _, ext = os.path.splitext(self.file_name)
+        return os.path.join(UPLOAD_DIR, self.user_id, f"file_{self.user_id}{ext}")
+    
     def __repr__(self):
-        return f"<file(file_id={self.file_id}>"
+        return f"<file(file_id={self.file_id}>, file_name={self.file_name}), storage_path={self.storage_path})>, created_at={self.created_at}, updated_at={self.updated_at})"
 
 
 #  WHAT I WANT TO ADD ARE THE FOLLOWING FIELDS

@@ -66,3 +66,9 @@ FastAPI provides an interactive API documentation where you can explore and test
 
 ## Database structure:
 ![Logo](db_structure.png)
+
+## How to connect to the Database
+   use this command
+   ```bash
+      psql -h localhost -p 5432 -U postgres -d niqatechdb
+   ```

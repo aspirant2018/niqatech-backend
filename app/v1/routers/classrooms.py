@@ -103,12 +103,25 @@ async def get_all_classrooms(
     return result
 
 @router.get("/classrooms/{classroom_id}", summary="returns a specific classroom")
-async def get_classroom(classroom_id, db:Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+async def get_classroom(classroom_id:str, db:Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     """
     Endpoint to get specific classroom
     """
-    file = db.query(UploadedFile).filter(User.id==current_user).first()
+    file = db.query(UploadedFile).filter(UploadedFile.user_id==current_user).first()
+    if file is None:
+        raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail= "No existing file. please upload file first"
+            )
+    # logger.info(f"file {file}")
+
+
     classroom = db.query(Classroom).filter(Classroom.file_id==file.file_id, Classroom.classroom_id == classroom_id ).all()
+    if not classroom:
+        raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail= f"No classroom with id {classroom_id} found for this user"
+            )
     return classroom
 
 
@@ -157,8 +170,16 @@ async def grade_classroom(classroom_id, grades:BulkGradeUpdate, db: Session = De
             
             updated_students.append(student)
             logger.info(f'Updated grades for student {student.student_id}')
+
             
         db.commit()
+
+
+        # Update the file 
+        file = db.query(Classroom).filter(Classroom.classroom_id==classroom_id).first().file
+        logger.info(f"file {file}")
+        students = db.query(Student).filter_by(classroom_id=classroom_id).all()
+        logger.info(f"Updated stundents: {students}")
 
         return {
             "message": f"Updated grades for {len(updated_students)} students",

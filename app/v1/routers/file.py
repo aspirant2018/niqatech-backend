@@ -12,6 +12,8 @@ from pydantic import BaseModel
 import logging
 import xlrd
 
+print("=== FILE.PY LOADED ===")
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -125,7 +127,10 @@ async def upload_file(
             uploaded_file = UploadedFile(
                 user_id = current_user,
                 file_name = file.filename,
+                storage_path ="placeholder_path.xlsx" # Placeholder path
             )
+
+            logger.info(f'uploaded_file instance {uploaded_file}')
         
             db.add(uploaded_file)
             db.flush() # Get the file_id
