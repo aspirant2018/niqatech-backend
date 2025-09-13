@@ -61,3 +61,8 @@ FastAPI provides an interactive API documentation where you can explore and test
 3. Open your browser to Browse all available endpoints:
    ```bash
    http://localhost:8000/docs
+
+
+
+## Database structure:
+![Logo](db_structure.png)
