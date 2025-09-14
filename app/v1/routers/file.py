@@ -1,5 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from app.v1.utils import parse_xls, to_float_or_none
 
 from app.v1.schemas.schemas import WorkbookParseResponse, FileUploadResponse, BulkGradeUpdate
@@ -11,6 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from pydantic import BaseModel
 import logging
 import xlrd
+import os
 
 print("=== FILE.PY LOADED ===")
 
@@ -306,3 +307,23 @@ async def get_file(db:Session = Depends(get_db), current_user: str = Depends(get
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error retrieving file information"
         )
+
+
+
+@router.get('file/download', summary="download the uploaded file")
+async def download_file(db:Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    """
+    Endpoint to download the XLS uploaded file.
+    """
+    file = db.query(UploadedFile).filter_by(user_id = current_user).one_or_none()
+    if not file:
+        raise HTTPException(status_code=404, detail="No file has been found")
+
+    logger.info(f"The file path is {file.storage_path}")
+    
+    current_path = os.getcwd()
+    logger.info(f"the current path {current_path}")
+    return FileResponse(path=file.storage_path,
+                        filename=os.path.basename(file.storage_path),
+                        media_type="application/xls"
+                        )

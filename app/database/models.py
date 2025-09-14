@@ -34,7 +34,7 @@ class User(Base):
         return f"<teacher(id={self.id}, email={self.email}, first_name={self.first_name}, last_name={self.last_name})>"
 
 
-UPLOAD_DIR = "uploads"
+UPLOAD_DIR = "app/uploads"
 
 class UploadedFile(Base):
     __tablename__ = 'uploaded_files'
@@ -42,6 +42,7 @@ class UploadedFile(Base):
     file_id      = Column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True, nullable=False)
     user_id      = Column(String, ForeignKey(User.id, ondelete="CASCADE"), unique=True, nullable=False)
     file_name    = Column(String, nullable=False)
+    # hadou zedthoum jdoud
     storage_path = Column(String, nullable=False) 
     created_at   = Column(DateTime(timezone=True), 
                     server_default=func.now(), 
