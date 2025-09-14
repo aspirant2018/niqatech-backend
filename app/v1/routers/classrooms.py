@@ -11,6 +11,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from pydantic import BaseModel
 import logging
 import xlrd
+from xlutils.copy import copy
+import os
+
+
 
 
 logging.basicConfig(
@@ -127,7 +131,7 @@ async def get_classroom(classroom_id:str, db:Session = Depends(get_db), current_
 
 
 @router.put("/classrooms/{classroom_id}/grades",summary="bulk update")
-async def grade_classroom(classroom_id, grades:BulkGradeUpdate, db: Session = Depends(get_db)):
+async def grade_classroom(classroom_id, grades:BulkGradeUpdate, db: Session = Depends(get_db), current: str = Depends(get_current_user)):
     """
     Endpoint to update the grades of all the students in a specific classroom
     input:
@@ -146,6 +150,7 @@ async def grade_classroom(classroom_id, grades:BulkGradeUpdate, db: Session = De
         ]
     }
     """
+    logger.info(f"Updating grades for classroom {classroom_id} by user {current}, grades: {grades}")
     try:
         grade_updates = {update.student_id: update for update in grades.classroom_grades}
         logger.info(f'grades_updates {grade_updates}')
@@ -173,13 +178,70 @@ async def grade_classroom(classroom_id, grades:BulkGradeUpdate, db: Session = De
 
             
         db.commit()
+        logger.info(f"Committed updates to the database for {len(updated_students)} students")  
 
+        # Get the storage path of the file associated with the current user 
+        
+        file = db.query(UploadedFile).filter_by(user_id=current).one_or_none()
+        logger.info(f"File associated with the current user {current} is {file}")
 
-        # Update the file 
-        file = db.query(Classroom).filter(Classroom.classroom_id==classroom_id).first().file
-        logger.info(f"file {file}")
+        if not file:
+            raise HTTPException(status_code=404, detail="No file has been found")
+        
+        storage_path = file.storage_path
+        logger.info(f"Storage path of the file associated with the current user {current} is {storage_path}")
+
+        if not storage_path:
+            raise HTTPException(status_code=404, detail="No file has been found")
+        
+        if not os.path.exists(storage_path):
+            raise HTTPException(status_code=404, detail="The file associated with this user does not exist on the sotrage disk")
+        
+        # Open the file
+        try:
+            workbook = xlrd.open_workbook(storage_path, ignore_workbook_corruption=True, formatting_info=True)
+            logger.info(f"Opened workbook at {storage_path} successfully")
+        except Exception as e:
+            logger.error(f"Error opening workbook at {storage_path}: {e}")
+            raise HTTPException(status_code=500, detail="Failed to open the Excel file")
+        
+        # Create a writable copy of the workbook
+        
+        try: 
+            workbook_copy = copy(workbook)
+            logger.info(f"Created writable copy of the workbook successfully")
+        except Exception as e:
+            logger.error(f"Error creating writable copy of the workbook: {e}")
+            raise HTTPException(status_code=500, detail="Failed to create a writable copy of the Excel file")
+
+        try:
+            classroom = db.query(Classroom).filter_by(classroom_id=classroom_id).one_or_none()
+            logger.info(f"Fetched classroom {classroom_id} from the database")
+        except SQLAlchemyError as e:
+            logger.error(f"Database error fetching classroom {classroom_id}: {e}")
+            raise HTTPException(status_code=500, detail="Database error occurred")
+
+        if not classroom:
+            raise HTTPException(status_code=404, detail=f"No classroom with id {classroom_id} found")
+        
+        
+
+        sheet_wt = workbook_copy.get_sheet(classroom.sheet_name)
         students = db.query(Student).filter_by(classroom_id=classroom_id).all()
-        logger.info(f"Updated stundents: {students}")
+        
+        # Insert grades into the specified rows/columns
+
+        for student in students:
+            if student.student_id in grade_updates:
+                logger.info(f"Updating student {student.student_id} in row {student.row}")
+                sheet_wt.write(student.row, 4, grades_update.new_evaluation)
+                sheet_wt.write(student.row, 5, grades_update.new_first_assignment)
+                sheet_wt.write(student.row, 6, grades_update.new_final_exam)
+                sheet_wt.write(student.row, 7, grades_update.new_observation)
+        
+        # Save the updated workbook
+        workbook_copy.save(storage_path)
+
 
         return {
             "message": f"Updated grades for {len(updated_students)} students",
@@ -187,7 +249,6 @@ async def grade_classroom(classroom_id, grades:BulkGradeUpdate, db: Session = De
                 }
     except Exception as e:
         db.rollback()
-        logger.info()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update grades"

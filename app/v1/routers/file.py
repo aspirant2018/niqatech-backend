@@ -321,8 +321,10 @@ async def download_file(db:Session = Depends(get_db), current_user: str = Depend
 
     logger.info(f"The file path is {file.storage_path}")
     
-    current_path = os.getcwd()
-    logger.info(f"the current path {current_path}")
+    # this will fetch the root path, Not needed
+    # We used the path in the metadata
+    # current_path = os.getcwd() 
+
     return FileResponse(path=file.storage_path,
                         filename=os.path.basename(file.storage_path),
                         media_type="application/xls"
