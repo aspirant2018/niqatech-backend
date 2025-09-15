@@ -3,9 +3,13 @@ This file contains utility functions and classes for the Niqatech backend applic
 '''
 
 import re
+import xlrd
 
 
-def parse_xls(workbook):
+def parse_xls(content):
+
+
+    workbook = xlrd.open_workbook(file_contents=content, ignore_workbook_corruption=True, formatting_info=True)
     data = {"classrooms": []}  # Start with a dictionary containing a list of classrooms
 
     for i in range(len(workbook.sheets()) - 1):
@@ -56,3 +60,6 @@ def to_float_or_none(value):
         return float(value)
     except (ValueError, TypeError):
         return None
+    
+def parse_file():
+    pass

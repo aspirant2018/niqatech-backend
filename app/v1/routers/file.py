@@ -41,19 +41,16 @@ async def upload_file(
                     db: Session = Depends(get_db),
                     current_user: str = Depends(get_current_user)
                     ):
-    """
-    Endpoint to upload an XLS file with proper validation and error handling.
-    """
+    """Endpoint to upload an XLS file with proper validation and error handling."""
+
     logger.info(f"File upload request from user: {current_user}")
-    existing_user = db.query(User).filter_by(id=current_user).first()
+    existing_user = db.query(User).filter_by(id=current_user).one_or_none()
     if not existing_user:
         logger.error(f"User: {current_user} not found in database")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not registred. Please register first"
         ) 
-
-
     # validate file
     if not file.filename:
         raise HTTPException(
@@ -81,7 +78,7 @@ async def upload_file(
                 detail=f"Empty file is provided")
 
         # Check if user already has a file
-        existing_file = db.query(UploadedFile).filter_by(user_id=current_user).first()
+        existing_file = db.query(UploadedFile).filter_by(user_id=current_user).one_or_none()
         if existing_file:
             logging.warning(f'User {current_user} already has a file {existing_file.file_name}')
             raise HTTPException(
@@ -89,18 +86,12 @@ async def upload_file(
                 detail="User already has a file. Delete the existing filefirst"
                 )
         
+        
+
         # Parse XLS file
         try:    
-            workbook = xlrd.open_workbook(
-                file_contents=content,
-                ignore_workbook_corruption=True,
-                formatting_info=True
-            )
-            # from app.v1.utils
-            data = parse_xls(workbook)
-
+            data = parse_xls(content)
         except Exception as parse_error:
-            logger.error(f"Error parsing XLS file: {str(parse_error)}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail= f"Error parsing XLS file: {str(parse_error)}"
@@ -108,7 +99,8 @@ async def upload_file(
         
         # Check the mismatch of academic level
         level_from_file =  data.get('classrooms')[0].get("level")
-        level_from_user = db.query(User).filter_by(id=current_user).first().academic_level.value
+        user = db.query(User).filter_by(id=current_user).first()
+        level_from_user = user.academic_level.value
 
         logger.info(f"Level from file: {level_from_file}")
         logger.info(f"Level from user: {level_from_user}")
@@ -122,7 +114,7 @@ async def upload_file(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Academic level mismatch: the level from the file:{level_from_file} vs the level provided by the user:{level_from_user}"
             )        
-        # Database transaction
+        # Database operations
         try:
             # Create uploaded file record
             uploaded_file = UploadedFile(
@@ -250,22 +242,33 @@ async def delete_file(db: Session = Depends(get_db), current_user: str = Depends
     Endpoint to delete the XLS uploaded file.
     """
     object_file = db.query(UploadedFile).filter_by(user_id = current_user).first()
+
+    if not object_file:
+        raise HTTPException(status_code=404, detail="No file has been found")
+
+     # Delete related classrooms and students
+     # The cascade="all, delete-orphan" in the relationship should handle this automatically,
+     # but we'll do it explicitly for clarity.
+     # Also, we need to delete the physical file from storage if applicable.
     
-    if object_file:
-        logger.info(f"Deleting file {object_file.file_id}")
+    logger.info(f"Deleting file {object_file.file_id}")
+    classrooms = db.query(Classroom).filter_by(file_id=object_file.file_id).all()
 
-        classrooms = db.query(Classroom).filter_by(file_id=object_file.file_id).all()
+    for classroom in classrooms:
+        db.query(Student).filter_by(classroom_id=classroom.classroom_id).delete()
+        db.delete(classroom)
 
-        for classroom in classrooms:
-            db.query(Student).filter_by(classroom_id=classroom.classroom_id).delete()
-            db.delete(classroom)
+    db.delete(object_file)
 
-        db.delete(object_file)
+    db.commit()
+    logger.info("The file and all related classrooms and students have been deleted")
 
-        db.commit()
-        logger.info("The file and all related classrooms and students have been deleted")
-
-        return {"message": "The XLS file and all related data have been deleted"}
+    return {
+            "message": "success",
+            "details": "The XLS file and all related data have been deleted",
+            "file_id": str(object_file.file_id)
+            }
+    
     raise HTTPException(status_code=404, detail="No file has been found")
 
 
@@ -286,7 +289,7 @@ async def get_file(db:Session = Depends(get_db), current_user: str = Depends(get
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail= "No existing file. please upload file first"
-            )
+            ) 
 
         logger.debug(f'User: {user.file}')
 
@@ -310,7 +313,7 @@ async def get_file(db:Session = Depends(get_db), current_user: str = Depends(get
 
 
 
-@router.get('file/download', summary="download the uploaded file")
+@router.get('/file/download', summary="download the uploaded file")
 async def download_file(db:Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     """
     Endpoint to download the XLS uploaded file.
@@ -321,10 +324,6 @@ async def download_file(db:Session = Depends(get_db), current_user: str = Depend
 
     logger.info(f"The file path is {file.storage_path}")
     
-    # this will fetch the root path, Not needed
-    # We used the path in the metadata
-    # current_path = os.getcwd() 
-
     return FileResponse(path=file.storage_path,
                         filename=os.path.basename(file.storage_path),
                         media_type="application/xls"
