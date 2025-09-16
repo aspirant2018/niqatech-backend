@@ -172,8 +172,7 @@ async def register(
                     detail=f"Empty file is provided")
 
             try:    
-                workbook = xlrd.open_workbook(file_contents=content, ignore_workbook_corruption=True, formatting_info=True)
-                data = parse_xls(workbook)
+                data = parse_xls(content)
             except Exception as parse_error:
                 logger.error(f"Error parsing XLS file: {str(parse_error)}")
                 raise HTTPException(

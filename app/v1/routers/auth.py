@@ -39,12 +39,9 @@ router = APIRouter(
 # localhost:8000/auth/google
 @router.post("/google", response_model=ItemResponse)
 async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
-    """
-    Authenticate user via Google OAuth token.
-    """
+    """ Authenticate user via Google OAuth token."""
 
-    logger.info("Google token received from frontend.")
-    logger.info(f"Token data: {token_data}")
+    logger.info(f"Google token received from frontend, The Token: {token_data}")
 
     try:
         id_info = id_token.verify_oauth2_token(
@@ -67,9 +64,7 @@ async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
         users = db.query(User).all()
         logger.info(f"Number of users in the database: {len(users)}")
 
-        app_jwt_token = generate_jwt_token(user_id,
-                                           SECRET_KEY,
-                                           ALGORITHM)
+        app_jwt_token = generate_jwt_token(user_id, SECRET_KEY, ALGORITHM)
         user = db.query(User).filter(User.id == user_id).first()
 
         logger.info(f"Users {users}")  # Ensure the database is connected
@@ -100,6 +95,7 @@ async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
                 "email": email,
                 "is_profile_complete": False,
                 "jwt_token": app_jwt_token
+
                 }
 
     except ValueError:

@@ -10,6 +10,7 @@ def parse_xls(content):
 
 
     workbook = xlrd.open_workbook(file_contents=content, ignore_workbook_corruption=True, formatting_info=True)
+    
     data = {"classrooms": []}  # Start with a dictionary containing a list of classrooms
 
     for i in range(len(workbook.sheets()) - 1):

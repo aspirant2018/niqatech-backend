@@ -116,13 +116,13 @@ async def upload_file(
             )        
         # Database operations
         try:
-            # Create uploaded file record
             uploaded_file = UploadedFile(
                 user_id = current_user,
                 file_name = file.filename,
-                storage_path ="placeholder_path.xlsx" # Placeholder path
             )
-
+            # Generate and set storage path
+            uploaded_file.storage_path = uploaded_file.generate_storage_path()
+            logger.info(f"Generated storage path: {uploaded_file.storage_path}")
             logger.info(f'uploaded_file instance {uploaded_file}')
         
             db.add(uploaded_file)
@@ -130,12 +130,35 @@ async def upload_file(
             populate_database(db, uploaded_file.file_id, data)    
             db.commit()
             logger.info(f"Successfully processed file: {file.filename} for user: {current_user}")          
+
+            try:
+                # Ensure directory exists
+                storage_dir = os.path.dirname(uploaded_file.storage_path)
+                os.makedirs(storage_dir, exist_ok=True)
+
+                # Save the file
+                with open(uploaded_file.storage_path, 'wb') as f:
+                    f.write(content)
+
+                logger.info(f"File saved successfully at {uploaded_file.storage_path}")
+
+            except OSError as e:
+                # Handles filesystem errors: permission denied, disk full, etc.
+                logger.error(f"Failed to save file at {uploaded_file.storage_path}: {e}")
+                raise RuntimeError(f"Could not save file: {e}") from e
+
+            except Exception as e:
+                # Catch any other unexpected errors
+                logger.error(f"Unexpected error while saving file: {e}")
+                raise RuntimeError(f"Unexpected error: {e}") from e
         
-            return {
-                "file_id": str(uploaded_file.file_id),
-                "num_classrooms": len(data["classrooms"]),
-                "data": data,
-                }
+            return JSONResponse(
+                status_code=status.HTTP_201_CREATED,
+                content={
+                        "file_id": str(uploaded_file.file_id),
+                        "num_classrooms": len(data["classrooms"]),
+                        "data": data,
+                })
     
         except SQLAlchemyError as db_error:
             db.rollback()
@@ -143,6 +166,7 @@ async def upload_file(
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Database error occured while saving file")
+        
     except HTTPException:
         raise
     except Exception as e:
