@@ -133,30 +133,16 @@ async def get_classroom(classroom_id:str, db:Session = Depends(get_db), current_
 @router.put("/classrooms/{classroom_id}/grades",summary="bulk update")
 async def grade_classroom(classroom_id, grades:BulkGradeUpdate, db: Session = Depends(get_db), current: str = Depends(get_current_user)):
     """
-    Endpoint to update the grades of all the students in a specific classroom
-    input:
-    {
-        classroom_grades: [
-            {
-                student_id:str,
-                new_evaluation:float,
-                new_first_assignement:float,
-                new_final_exam:float,
-                new_observation:str
-            },
-            {
-                ...
-            },
-        ]
-    }
-    """
-    logger.info(f"Updating grades for classroom {classroom_id} by user {current}, grades: {grades}")
+    Endpoint to update the grades of all the students in a specific classroom"""
+
+    logger.info(f"Updating grades for classroom '{classroom_id}' by user '{current}'")
     try:
         grade_updates = {update.student_id: update for update in grades.classroom_grades}
-        logger.info(f'grades_updates {grade_updates}')
 
         students = db.query(Student).filter_by(classroom_id=classroom_id).all()
-        if not students:
+        logger.info(f"Fetched {len(students)} students from the database for classroom '{classroom_id}'")
+
+        if len(students) == 0:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="No students found in this classroom {classroom_id}"
@@ -226,13 +212,15 @@ async def grade_classroom(classroom_id, grades:BulkGradeUpdate, db: Session = De
         
         
 
+        logger.info(f"Accessing sheet {classroom.sheet_name} in the workbook")
         sheet_wt = workbook_copy.get_sheet(classroom.sheet_name)
+
         students = db.query(Student).filter_by(classroom_id=classroom_id).all()
         
         # Insert grades into the specified rows/columns
-
         for student in students:
             if student.student_id in grade_updates:
+                grades_update = grade_updates[student.student_id]
                 logger.info(f"Updating student {student.student_id} in row {student.row}")
                 sheet_wt.write(student.row, 4, grades_update.new_evaluation)
                 sheet_wt.write(student.row, 5, grades_update.new_first_assignment)
@@ -241,6 +229,7 @@ async def grade_classroom(classroom_id, grades:BulkGradeUpdate, db: Session = De
         
         # Save the updated workbook
         workbook_copy.save(storage_path)
+        logger.info(f"Saved updated workbook to {storage_path} successfully")
 
 
         return {

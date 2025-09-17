@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 
 
 # PostgreSQL
+# engine = create_engine("postgresql://postgres:Rahimmazouz707@db:5432/niqatechdb")
 engine = create_engine("postgresql://postgres:Rahimmazouz707@localhost:5432/niqatechdb")
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
