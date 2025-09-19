@@ -10,6 +10,7 @@ pydantic[email]
 python-dotenv
 langchain
 langchain-openai
+langchain-qdrant
 chromadb
 openai
 psycopg2-binary
