@@ -4,7 +4,7 @@ from app.v1.utils import parse_xls, to_float_or_none
 
 from app.v1.schemas.schemas import WorkbookParseResponse, FileUploadResponse
 from app.v1.auth.dependencies import get_current_user
-from app.database.database import get_db
+from app.database.database import get_db, DocumentIndexer
 from app.database.models import UploadedFile, User, Classroom, Student
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -69,9 +69,33 @@ async def reponse(query: Query, db: Session = Depends(get_db)):
     """
     if not os.environ.get("OPENAI_API_KEY"):
         logger.error("OPENAI_API_KEY is not set in the environment variables.")
+
+
         
     logger.info(f"Streaming response for query: {query}")
     model = init_chat_model(model="gpt-3.5-turbo-0125",model_provider="openai")
+
+    with open("app/Decret_executif_n°_25-54_statut_particulier_des_fonctionnaires_appartenant_aux_corps_specifiques_de_leducation_nationale-47-89.md", "r") as f:
+        content = f.read()
+
+
+    my_document_indexer = DocumentIndexer("localhost:6333")
+
+    if not my_document_indexer.vector_store:
+
+        logger.info(f"vectore store does'nt exist")
+        await my_document_indexer.index_in_qdrantdb(
+            content=content,
+            file_name="test",
+            doc_type="md",
+            chunk_size=200
+        )
+    
+
+    logger.info(my_document_indexer)
+    found_docs = await my_document_indexer.vector_store.asimilarity_search(query.query, k=10)
+    logger.info(f" Found documents: {found_docs}")
+
 
     
     # results = vector_store.similarity_search_by_vector(

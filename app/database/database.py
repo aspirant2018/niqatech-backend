@@ -49,7 +49,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 class DocumentIndexer:
     def __init__(self,qdrant_db_path):
         self.db_path = qdrant_db_path
-        self.embeddings_model = OpenAIEmbeddings(model="text-embedding-3-large", api_key=OPENAI_API_KEY)
+        self.embedding_function = OpenAIEmbeddings(model="text-embedding-3-large", api_key=OPENAI_API_KEY)
         self.vector_store = None
         self.client = AsyncQdrantClient(self.db_path)
 
@@ -80,22 +80,29 @@ class DocumentIndexer:
             collection_name = "rag_collection"
 
             collections = await self.client.get_collections()
+            logger.info(f"The list of collections: {collections}")
+
             if collection_name in [col.name for col in collections.collections]:
                 logger.info(f"Collection {collection_name} already exists.")
             else:
                 logger.info(f"Creating collection {collection_name}.")
                 await self.client.create_collection(
                     collection_name=collection_name,
-                    vectors_config=VectorParams(size=384, distance=Distance.COSINE),
+                    vectors_config=VectorParams(size=3072, distance=Distance.COSINE),
                 )
                 logger.info(f"Created collection {collection_name}.")
 
-                self.vector_store =  QdrantVectorStore.from_existing_collection(collection_name=collection_name, embedding=self.embedding_function, url=self.db_path)
+            self.vector_store =  QdrantVectorStore.from_existing_collection(collection_name=collection_name,
+                                                                            embedding=self.embedding_function,
+                                                                            url=self.db_path,
+                                                                            )
+            
+            logger.info(f"Vector store: {self.vector_store}")
 
-                await self.vector_store.aadd_documents(documents=docs, ids=uuids)
+            await self.vector_store.aadd_documents(documents=docs, ids=uuids)
 
-                logger.info(f"Successfully indexed document in QdrantDB")
-                return True
+            logger.info(f"Successfully indexed document in QdrantDB")
+            return True
             
             
         except Exception as e:
@@ -103,10 +110,19 @@ class DocumentIndexer:
             return
     
     def __str__(self):
-        return f"DocumentIndexer connected to Qdrant at {self.db_path}"
+        return f"DocumentIndexer connected to Qdrant at {self.db_path}, {self.vector_store}"
 
 
-test = DocumentIndexer("localhost:6333")
 
-with open("app/Decret_executif_n°_25-54_statut_particulier_des_fonctionnaires_appartenant_aux_corps_specifiques_de_leducation_nationale-47-89.md", "r") as f:
-    content = f.read()
+# with open("app/Decret_executif_n°_25-54_statut_particulier_des_fonctionnaires_appartenant_aux_corps_specifiques_de_leducation_nationale-47-89.md", "r") as f:
+#     content = f.read()
+
+# import asyncio
+
+# asyncio.run(
+#     DocumentIndexer("localhost:6333").index_in_qdrantdb(
+#         content=content,
+#         file_name="test",
+#        doc_type="md"
+#    )
+#)
