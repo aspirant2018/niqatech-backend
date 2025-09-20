@@ -70,44 +70,51 @@ async def reponse(query: Query, db: Session = Depends(get_db)):
     if not os.environ.get("OPENAI_API_KEY"):
         logger.error("OPENAI_API_KEY is not set in the environment variables.")
 
+    
+    from qdrant_client import QdrantClient, AsyncQdrantClient
+
+    client = AsyncQdrantClient(url="http://localhost:6333")
+
+    collection_name = "rag_collection"
+    if not await client.collection_exists(collection_name=collection_name):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"'{collection_name}' Not Found"
+        ) 
 
         
-    logger.info(f"Streaming response for query: {query}")
+    logger.info(f"Streaming response for query: {query.query}")
+    # Langchain chatmodel wrapper 
     model = init_chat_model(model="gpt-3.5-turbo-0125",model_provider="openai")
 
-    with open("app/Decret_executif_n°_25-54_statut_particulier_des_fonctionnaires_appartenant_aux_corps_specifiques_de_leducation_nationale-47-89.md", "r") as f:
-        content = f.read()
+    from langchain_openai import OpenAIEmbeddings
+
+    embedding_function = OpenAIEmbeddings(model="text-embedding-3-large", api_key=os.environ.get("OPENAI_API_KEY"))
+
+    single_vector = embedding_function.embed_query(query.query)
+    logger.info(f"The first 100 characters of the vector: {str(single_vector)[:100]}")
 
 
-    my_document_indexer = DocumentIndexer("localhost:6333")
+    results = await client.search(
+      collection_name=collection_name,
+      query_vector=single_vector,  # type: ignore
+      limit=10,
+   )
 
-    if not my_document_indexer.vector_store:
+   
+    # logger.info(f" Found documents: {results}")
 
-        logger.info(f"vectore store does'nt exist")
-        await my_document_indexer.index_in_qdrantdb(
-            content=content,
-            file_name="test",
-            doc_type="md",
-            chunk_size=200
-        )
-    
+    #for res in results:
+    #    print(res.payload.get("page_content",None))
 
-    logger.info(my_document_indexer)
-    found_docs = await my_document_indexer.vector_store.asimilarity_search(query.query, k=10)
-    logger.info(f" Found documents: {found_docs}")
+    context = "\n".join([f"{res.payload.get("page_content",None)}" for res in results])
 
-
-    
-    # results = vector_store.similarity_search_by_vector(
-    #      embedding=embeddings.embed_query(query.query), k=5)    #for res in results:
-        #logger.info(f"* {res.page_content} [{res.metadata}]")
-
-    # context = "\n".join([f"{res.page_content} [{res.metadata}]" for res in results])
-
-    # user_message = f"Context:\n{context}\n\nUser Query: {query.query}"
+    user_message = f"""
+    Only use this Context:\n{context}\n\n to answer the user's query: {query.query}
+    """
 
     response = model.astream(
-        input=query.query,
+        input=user_message,
     )
     
     if not response:
@@ -117,7 +124,7 @@ async def reponse(query: Query, db: Session = Depends(get_db)):
             detail="Failed to get a response from the AI assistant."
         )
     return StreamingResponse(send_completion_events(response), media_type="text/event-stream")
-'''
+
 @router.post("/file/upload", summary="upload files")
 async def reponse(file: UploadFile = File(...)):
     """
@@ -133,63 +140,30 @@ async def reponse(file: UploadFile = File(...)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No file provided"
         )
-        
-    temp_file_path = Path(f"./temp_{file.filename}")
-    with open(temp_file_path, "wb") as f:
-            f.write(await file.read())
 
-    # TODO
-    # Parse the PDF file
-    raw_text = parse_file(temp_file_path).lower().strip('\n\n')
-    articles = extract_articles_with_chapters(raw_text)
+    content  = await file.read()
+
+    my_document_indexer = DocumentIndexer("localhost:6333")
+    logger.info(f"document indexer: {my_document_indexer}")
 
 
-    from uuid import uuid4
-    from langchain_core.documents import Document
+    if not my_document_indexer.vector_store:
 
-        
-
-    documents = []
-    i = 0
-    for article in articles["output"]:
-        document = Document(
-            page_content=article["content"],
-            metadata={
-                "source": "temp_Decret_executif_n°_25-54_statut_particulier_des_fonctionnaires_appartenant_aux_corps_specifiques_de_leducation_nationale-47-49.pdf",
-                "chapter": article['chapter']['title']
-                },
-            id=i+1,
+        logger.info(f"vectore store does'nt exist")
+        await my_document_indexer.index_in_qdrantdb(
+            content=content,
+            file_name="test",
+            doc_type="md",
+            chunk_size=200
         )
-        documents.append(document)
 
-    logger.info(f"Document created: {documents}")
 
-    # Add documents to the vector store
-    # Generate unique IDs for each document
-    uuids = [str(uuid4()) for _ in range(len(documents))]
-    vector_store.add_documents(documents=documents, ids=uuids)
-
-    temp_file_path.unlink() # Remove the temporary file after processing
-   
-
-    return  {'message': "File processed and stored successfully", "articles": articles["output"]} 
+        return JSONResponse(content='File processed and stored successfully',status_code=200)
 
 
 
 
 
-def parse_file(temp_file_path: Path):
-    """
-    Parse the file and convert it to text format using Docling.
-    """
-    
-    from docling.document_converter import DocumentConverter
-
-    converter = DocumentConverter()
-    result = converter.convert(str(temp_file_path))
-    output = result.document.export_to_markdown()
-
-    return output
 
 
 
@@ -255,4 +229,3 @@ def extract_articles_with_chapters(text):
         })
 
     return {"output": results}
-'''
