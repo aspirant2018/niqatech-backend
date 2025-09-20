@@ -57,7 +57,7 @@ load_dotenv()
 from pydantic import BaseModel, Field
 class QueryExpantion(BaseModel):
     """Always use this tool to structure your response to the user."""
-    queries: list[str] = Field(description="list of similaire queries")
+    queries: list[str] = Field(description="list of 5 of similair queries")
 
         
 class Query(BaseModel):
@@ -82,11 +82,23 @@ async def reponse(query: Query, db: Session = Depends(get_db)):
     You are a search query expansion expert. Your task is to expand and improve the given query
     to make it more detailed and comprehensive. Include relevant synonyms and related terms to improve retrieval.
     Return only the expanded query without any explanations or additional text.
-
-    Original query: {query}
     """
 
+    # Query Expantion:
     query_expansion_model = init_chat_model(model="gpt-4.1",model_provider="openai").with_structured_output(QueryExpantion)
+
+    prompt_template = ChatPromptTemplate([
+        ("system", query_template),
+        ("user", f"The query: {query}"),
+    ])
+
+    messages = prompt_template.invoke({"query": query.query})
+    queries = await query_expansion_model.ainvoke(messages)
+    logger.info(f"Queries after expantion:\n {queries}")
+
+
+
+    # Retrieval
     model = init_chat_model(model="gpt-4.1",model_provider="openai")
 
     # Generate similaire queries
@@ -95,11 +107,9 @@ async def reponse(query: Query, db: Session = Depends(get_db)):
 
     collection_name = "rag_collection"
     if not await client.collection_exists(collection_name=collection_name):
-
         response = model.astream(
         input=query.query,
         )
-
         return StreamingResponse(send_completion_events(response), media_type="text/event-stream")
 
         #raise HTTPException(
@@ -123,6 +133,10 @@ async def reponse(query: Query, db: Session = Depends(get_db)):
         print(res.payload.get("page_content",None))
 
 
+    # Re-ranking
+    TODO
+    
+    # Generation
     system_prompt = """
     You are an assistant for question-answering tasks. you must be polite and helpful
     Use the following pieces of retrieved context to answer the question.
