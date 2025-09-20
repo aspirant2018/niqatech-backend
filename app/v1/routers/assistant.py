@@ -54,6 +54,10 @@ router = APIRouter(
 
 load_dotenv()
 
+from pydantic import BaseModel, Field
+class QueryExpantion(BaseModel):
+    """Always use this tool to structure your response to the user."""
+    queries: list[str] = Field(description="list of similaire queries")
 
         
 class Query(BaseModel):
@@ -71,10 +75,23 @@ async def reponse(query: Query, db: Session = Depends(get_db)):
     """
     if not os.environ.get("OPENAI_API_KEY"):
         logger.error("OPENAI_API_KEY is not set in the environment variables.")
-
     
+    logger.info(f"The query: {query.query}")
 
-    client = AsyncQdrantClient(url="http://localhost:6333")
+    query_template = """
+    You are a search query expansion expert. Your task is to expand and improve the given query
+    to make it more detailed and comprehensive. Include relevant synonyms and related terms to improve retrieval.
+    Return only the expanded query without any explanations or additional text.
+
+    Original query: {query}
+    """
+
+    query_expansion_model = init_chat_model(model="gpt-4.1",model_provider="openai").with_structured_output(QueryExpantion)
+
+    # Generate similaire queries
+
+
+    client = AsyncQdrantClient(url="http://qdrant:6333")
 
     collection_name = "rag_collection"
     if not await client.collection_exists(collection_name=collection_name):
@@ -82,13 +99,9 @@ async def reponse(query: Query, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"'{collection_name}' Not Found"
         ) 
+    
 
-        
-    logger.info(f"Streaming response for query: {query.query}")
-    # Langchain chatmodel wrapper 
-    model = init_chat_model(model="gpt-3.5-turbo-0125",model_provider="openai")
-
-
+    model = init_chat_model(model="gpt-4.1",model_provider="openai")
     embedding_function = OpenAIEmbeddings(model="text-embedding-3-large", api_key=os.environ.get("OPENAI_API_KEY"))
 
     single_vector = embedding_function.embed_query(query.query)
@@ -99,10 +112,13 @@ async def reponse(query: Query, db: Session = Depends(get_db)):
       query_vector=single_vector,
       limit=10,
    )
+    
+    for res in results:
+        print(res.payload.get("page_content",None))
 
 
     system_prompt = """
-    You are an assistant for question-answering tasks.
+    You are an assistant for question-answering tasks. you must be polite and helpful
     Use the following pieces of retrieved context to answer the question.
     If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.
     """
@@ -116,7 +132,7 @@ async def reponse(query: Query, db: Session = Depends(get_db)):
 
     messages = prompt_template.invoke({"query": query.query, "context":context})
 
-    logger.info(f"The prompt Template: {prompt_template}")
+    print(messages)
 
     response = model.astream(
         input=messages,
@@ -148,7 +164,7 @@ async def reponse(file: UploadFile = File(...)):
 
     content  = await file.read()
 
-    my_document_indexer = DocumentIndexer("localhost:6333")
+    my_document_indexer = DocumentIndexer("http://qdrant:6333")
     logger.info(f"document indexer: {my_document_indexer}")
 
 

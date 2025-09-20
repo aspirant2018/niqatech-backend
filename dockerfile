@@ -19,7 +19,8 @@ COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
+# Install Python dependencies with verbose output
+RUN pip install --no-cache-dir -r requirements.txt --verbose
 
 # Copy the application code
 COPY . .

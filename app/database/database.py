@@ -29,7 +29,7 @@ logging.basicConfig(level=logging.INFO)
 
 # PostgreSQL
 # engine = create_engine("postgresql://postgres:Rahimmazouz707@db:5432/niqatechdb")
-engine = create_engine("postgresql://postgres:Rahimmazouz707@localhost:5432/niqatechdb")
+engine = create_engine("postgresql://postgres:Rahimmazouz707@db:5432/niqatechdb")
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -111,18 +111,3 @@ class DocumentIndexer:
     
     def __str__(self):
         return f"DocumentIndexer connected to Qdrant at {self.db_path}, {self.vector_store}"
-
-
-
-# with open("app/Decret_executif_n°_25-54_statut_particulier_des_fonctionnaires_appartenant_aux_corps_specifiques_de_leducation_nationale-47-89.md", "r") as f:
-#     content = f.read()
-
-# import asyncio
-
-# asyncio.run(
-#     DocumentIndexer("localhost:6333").index_in_qdrantdb(
-#         content=content,
-#         file_name="test",
-#        doc_type="md"
-#    )
-#)
