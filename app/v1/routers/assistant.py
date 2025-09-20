@@ -87,21 +87,27 @@ async def reponse(query: Query, db: Session = Depends(get_db)):
     """
 
     query_expansion_model = init_chat_model(model="gpt-4.1",model_provider="openai").with_structured_output(QueryExpantion)
+    model = init_chat_model(model="gpt-4.1",model_provider="openai")
 
     # Generate similaire queries
-
 
     client = AsyncQdrantClient(url="http://qdrant:6333")
 
     collection_name = "rag_collection"
     if not await client.collection_exists(collection_name=collection_name):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"'{collection_name}' Not Found"
-        ) 
+
+        response = model.astream(
+        input=query.query,
+        )
+
+        return StreamingResponse(send_completion_events(response), media_type="text/event-stream")
+
+        #raise HTTPException(
+        #    status_code=status.HTTP_404_NOT_FOUND,
+        #    detail=f"'{collection_name}' Not Found"
+        #) 
     
 
-    model = init_chat_model(model="gpt-4.1",model_provider="openai")
     embedding_function = OpenAIEmbeddings(model="text-embedding-3-large", api_key=os.environ.get("OPENAI_API_KEY"))
 
     single_vector = embedding_function.embed_query(query.query)
