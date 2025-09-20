@@ -1,23 +1,43 @@
+# Fastapi 
 from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, status
 from fastapi.responses import JSONResponse, StreamingResponse
-from app.v1.utils import parse_xls, to_float_or_none
 
+# App packages
+from app.v1.utils import parse_xls, to_float_or_none
 from app.v1.schemas.schemas import WorkbookParseResponse, FileUploadResponse
 from app.v1.auth.dependencies import get_current_user
 from app.database.database import get_db, DocumentIndexer
 from app.database.models import UploadedFile, User, Classroom, Student
+
+# Sqlalchemy
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+
 from pydantic import BaseModel
-from pathlib import Path
+
+# Langchain
+from langchain_openai import OpenAIEmbeddings
+from langchain.chat_models import init_chat_model
+from langchain_core.prompts import ChatPromptTemplate
+
+#from langchain_docling import DoclingLoader
+#from langchain_docling.export_type import ExportType
+from typing import List, Dict
+
+
+
+# Qdrant packages
+from qdrant_client import QdrantClient, AsyncQdrantClient
 
 
 from dotenv import load_dotenv
+from pathlib import Path
 import logging
 import os
-from langchain.chat_models import init_chat_model
-#from langchain_docling import DoclingLoader
-# #from langchain_docling.export_type import ExportType
+import getpass
+import re
+
+
 
 
 logging.basicConfig(
@@ -34,25 +54,7 @@ router = APIRouter(
 
 load_dotenv()
 
-import getpass
-import os
 
-
-# from langchain_openai import OpenAIEmbeddings
-
-# embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
-
-# from langchain_core import 
-#def generate():
-#    for i in range(5):
-#        yield f"data: message {i}\n\n"
-# import chromadb
-# from langchain_chroma import Chroma
-
-
-# client = chromadb.PersistentClient(path="./chroma_langchain_db")
-
-# collection = client.get_or_create_collection("laws_collection")
         
 class Query(BaseModel):
     query: str
@@ -71,7 +73,6 @@ async def reponse(query: Query, db: Session = Depends(get_db)):
         logger.error("OPENAI_API_KEY is not set in the environment variables.")
 
     
-    from qdrant_client import QdrantClient, AsyncQdrantClient
 
     client = AsyncQdrantClient(url="http://localhost:6333")
 
@@ -87,34 +88,38 @@ async def reponse(query: Query, db: Session = Depends(get_db)):
     # Langchain chatmodel wrapper 
     model = init_chat_model(model="gpt-3.5-turbo-0125",model_provider="openai")
 
-    from langchain_openai import OpenAIEmbeddings
 
     embedding_function = OpenAIEmbeddings(model="text-embedding-3-large", api_key=os.environ.get("OPENAI_API_KEY"))
 
     single_vector = embedding_function.embed_query(query.query)
     logger.info(f"The first 100 characters of the vector: {str(single_vector)[:100]}")
 
-
     results = await client.search(
       collection_name=collection_name,
-      query_vector=single_vector,  # type: ignore
+      query_vector=single_vector,
       limit=10,
    )
 
-   
-    # logger.info(f" Found documents: {results}")
 
-    #for res in results:
-    #    print(res.payload.get("page_content",None))
-
+    system_prompt = """
+    You are an assistant for question-answering tasks.
+    Use the following pieces of retrieved context to answer the question.
+    If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.
+    """
     context = "\n".join([f"{res.payload.get("page_content",None)}" for res in results])
 
-    user_message = f"""
-    Only use this Context:\n{context}\n\n to answer the user's query: {query.query}
-    """
+    prompt_template = ChatPromptTemplate([
+        ("system", system_prompt),
+        ("user", f"Question: {query}"),
+        ("user", f"Context':\n{context}")
+    ])
+
+    messages = prompt_template.invoke({"query": query.query, "context":context})
+
+    logger.info(f"The prompt Template: {prompt_template}")
 
     response = model.astream(
-        input=user_message,
+        input=messages,
     )
     
     if not response:
@@ -176,56 +181,3 @@ def embedding(chunk):
 
 def store(vector):
     pass
-    
-
-
-import re
-from typing import List, Dict
-
-
-import re
-
-def extract_articles_with_chapters(text):
-    # Regex to match chapters like: "chapitre 1er ## title" or "chapitre 2 ## title"
-    chapitre_pattern = re.compile(
-        r'(chapitre\s+(?:1er|\d+))\s*##\s*(.+)', re.IGNORECASE)
-
-    # Regex to match articles: "article 1er" or "art. {number}"
-    article_pattern = re.compile(
-        r'\b(article\s+1er|art\.\s*\d+)\b', re.IGNORECASE)
-
-    # Extract all chapter matches with their position
-    chapitres = []
-    for match in chapitre_pattern.finditer(text):
-        chapitres.append({
-            "start": match.start(),
-            "id": match.group(1).strip().lower(),
-            "title": match.group(2).strip()
-        })
-
-    # Extract all articles with their position
-    articles = list(article_pattern.finditer(text))
-
-    # Build the result list
-    results = []
-    for idx, art in enumerate(articles):
-        start = art.start()
-        end = articles[idx + 1].start() if idx + 1 < len(articles) else len(text)
-
-        # Find the closest preceding chapter
-        chapitre_meta = None
-        for chapitre in reversed(chapitres):
-            if chapitre["start"] < start:
-                chapitre_meta = {
-                    "id": chapitre["id"],
-                    "title": chapitre["title"]
-                }
-                break
-
-        results.append({
-            "article": art.group().strip(),
-            "chapter": chapitre_meta,
-            "content": text[start:end].strip()
-        })
-
-    return {"output": results}
