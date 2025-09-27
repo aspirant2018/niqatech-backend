@@ -9,6 +9,41 @@ import uvicorn
 import logging
 from app.v1.routers import auth, users, status, me, assistant, file, classrooms, students
 
+from contextlib import asynccontextmanager
+from qdrant_client import QdrantClient
+from qdrant_client.models import VectorParams, Distance
+
+# Qdrant client
+qdrant_client = QdrantClient(
+    host="localhost",
+    port=6333,
+    prefer_grpc=True
+)
+
+# Define collections and their configs
+COLLECTIONS = {
+    "document_embeddings": VectorParams(size=384, distance=Distance.DOT),
+}
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ---- Startup ----
+    existing = [c.name for c in qdrant_client.get_collections().collections]
+    for name, config in COLLECTIONS.items():
+        if name not in existing:
+            qdrant_client.recreate_collection(
+                collection_name=name,
+                vectors_config=config,
+            )
+            print(f"✅ Created collection {name}")
+        else:
+            print(f"ℹ️ Collection {name} already exists")
+    
+    yield  # <-- application runs here
+
+    # ---- Shutdown ----
+    print("🔻 Shutting down app...")
+
 
 
 logger = logging.getLogger("__main.py__")

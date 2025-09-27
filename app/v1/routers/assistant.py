@@ -28,7 +28,7 @@ from typing import List, Dict
 
 # Qdrant packages
 from qdrant_client import QdrantClient, AsyncQdrantClient
-
+from qdrant_client.http.models.models import SearchRequest
 
 from dotenv import load_dotenv
 from pathlib import Path
@@ -57,7 +57,7 @@ load_dotenv()
 from pydantic import BaseModel, Field
 class QueryExpantion(BaseModel):
     """Always use this tool to structure your response to the user."""
-    queries: list[str] = Field(description="list of 5 of similair queries")
+    queries: list[str] = Field(description="list of 4 of similair queries used for retrieval of documents")
 
         
 class Query(BaseModel):
@@ -82,6 +82,7 @@ async def reponse(query: Query, db: Session = Depends(get_db)):
     You are a search query expansion expert. Your task is to expand and improve the given query
     to make it more detailed and comprehensive. Include relevant synonyms and related terms to improve retrieval.
     Return only the expanded query without any explanations or additional text.
+    Provide 5 different expanded queries in a list format.
     """
 
     # Query Expantion:
@@ -89,20 +90,27 @@ async def reponse(query: Query, db: Session = Depends(get_db)):
 
     prompt_template = ChatPromptTemplate([
         ("system", query_template),
-        ("user", f"The query: {query}"),
+        ("human", f"{query}"),
     ])
 
     messages = prompt_template.invoke({"query": query.query})
     queries = await query_expansion_model.ainvoke(messages)
+
+    queries = list(queries.queries)
     logger.info(f"Queries after expantion:\n {queries}")
 
+    if isinstance(queries, list):
+        queries.append(query.query)
+    else:
+        logger.warning("The output of the query expansion model is not a list. Using the original query only.")
+        queries = [query.query]
 
 
     # Retrieval
-    model = init_chat_model(model="gpt-4.1",model_provider="openai")
+    model = init_chat_model(model="gpt-4.1", model_provider="openai")
+
 
     # Generate similaire queries
-
     client = AsyncQdrantClient(url="http://qdrant:6333")
 
     collection_name = "rag_collection"
@@ -118,41 +126,58 @@ async def reponse(query: Query, db: Session = Depends(get_db)):
         #) 
     
 
-    embedding_function = OpenAIEmbeddings(model="text-embedding-3-large", api_key=os.environ.get("OPENAI_API_KEY"))
+    embedding_model = OpenAIEmbeddings(model="text-embedding-3-large",
+                                          api_key=os.environ.get("OPENAI_API_KEY")
+                                          )
 
-    single_vector = embedding_function.embed_query(query.query)
-    logger.info(f"The first 100 characters of the vector: {str(single_vector)[:100]}")
+    embedding_queries = embedding_model.embed_documents(queries)
+    logger.info(f"The number of vectors: {len(embedding_queries), len(embedding_queries[0])}")
+    logger.info(f"Show vector: {embedding_queries[0][0:5]} ... {embedding_queries[0][-5:]}")
 
-    results = await client.search(
+
+    scored_points = await client.search_batch(
       collection_name=collection_name,
-      query_vector=single_vector,
-      limit=10,
+      requests=[SearchRequest(vector=vector, limit=2) for vector in embedding_queries],
    )
+    logger.info(f"Results type: {type(scored_points)}")
+    logger.info(f"Number of results: {len(scored_points)}")
+    #logger.info(f"Show results: {results}")
     
-    for res in results:
-        print(res.payload.get("page_content",None))
+    scored_points = [item for sublist in scored_points for item in sublist]  # Flatten the list of lists
+    logger.info(f"Number of scored points after flattening: {len(scored_points)}")
 
+
+
+    # gGet content from ids 
+
+    ids = [score_point.id for score_point in scored_points]
+    logger.info(f"Number of unique ids: {len(ids)}")
+
+    results = await client.retrieve(
+        collection_name=collection_name,
+        ids=ids,
+        )
 
     # Re-ranking
-    TODO
     
+    # Context creation
+    context = "\n".join([f"{res.payload.get("page_content", None)}" for res in results])
+    logger.info(f"Context:\n{context}")
+
     # Generation
     system_prompt = """
     You are an assistant for question-answering tasks. you must be polite and helpful
     Use the following pieces of retrieved context to answer the question.
     If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.
     """
-    context = "\n".join([f"{res.payload.get("page_content",None)}" for res in results])
-
     prompt_template = ChatPromptTemplate([
         ("system", system_prompt),
-        ("user", f"Question: {query}"),
-        ("user", f"Context':\n{context}")
+        ("human", f"Question: {query}"),
+        ("human", f"Context':\n{context}")
     ])
 
     messages = prompt_template.invoke({"query": query.query, "context":context})
-
-    print(messages)
+    logger.info("Final messages to the model: {messages}")
 
     response = model.astream(
         input=messages,
