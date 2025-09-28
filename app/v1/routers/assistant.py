@@ -3,8 +3,8 @@ from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, s
 from fastapi.responses import JSONResponse, StreamingResponse
 
 # App packages
-from app.v1.utils import parse_xls, to_float_or_none
-from app.v1.schemas.schemas import WorkbookParseResponse, FileUploadResponse
+from app.v1.utils import parse_xls, to_float_or_none, expand_query, retrieve_from_qdrant
+from app.v1.schemas.schemas import WorkbookParseResponse, FileUploadResponse, QueryExpantion
 from app.v1.auth.dependencies import get_current_user
 from app.database.database import get_db, DocumentIndexer
 from app.database.models import UploadedFile, User, Classroom, Student
@@ -75,57 +75,25 @@ async def reponse(query: Query, db: Session = Depends(get_db)):
     """
     if not os.environ.get("OPENAI_API_KEY"):
         logger.error("OPENAI_API_KEY is not set in the environment variables.")
-    
-    logger.info(f"The query: {query.query}")
 
-    query_template = """
-    You are a search query expansion expert. Your task is to expand and improve the given query
-    to make it more detailed and comprehensive. Include relevant synonyms and related terms to improve retrieval.
-    Return only the expanded query without any explanations or additional text.
-    Provide 5 different expanded queries in a list format.
-    """
-
-    # Query Expantion:
-    query_expansion_model = init_chat_model(model="gpt-4.1",model_provider="openai").with_structured_output(QueryExpantion)
-
-    prompt_template = ChatPromptTemplate([
-        ("system", query_template),
-        ("human", f"{query}"),
-    ])
-
-    messages = prompt_template.invoke({"query": query.query})
-    queries = await query_expansion_model.ainvoke(messages)
-
-    queries = list(queries.queries)
-    logger.info(f"Queries after expantion:\n {queries}")
-
-    if isinstance(queries, list):
-        queries.append(query.query)
-    else:
-        logger.warning("The output of the query expansion model is not a list. Using the original query only.")
-        queries = [query.query]
-
-
-    # Retrieval
-    model = init_chat_model(model="gpt-4.1", model_provider="openai")
-
-
-    # Generate similaire queries
     client = AsyncQdrantClient(url="http://qdrant:6333")
+    generation_model = init_chat_model(model="gpt-4.1", model_provider="openai")
+
 
     collection_name = "rag_collection"
     if not await client.collection_exists(collection_name=collection_name):
-        response = model.astream(
+        response = generation_model.astream(
         input=query.query,
         )
         return StreamingResponse(send_completion_events(response), media_type="text/event-stream")
 
-        #raise HTTPException(
-        #    status_code=status.HTTP_404_NOT_FOUND,
-        #    detail=f"'{collection_name}' Not Found"
-        #) 
     
+    # Expand similar queries
+    queries = await expand_query(query.query)
+    logger.info(f"Expanded queries: {queries}")
 
+
+    
     embedding_model = OpenAIEmbeddings(model="text-embedding-3-large",
                                           api_key=os.environ.get("OPENAI_API_KEY")
                                           )
@@ -134,42 +102,25 @@ async def reponse(query: Query, db: Session = Depends(get_db)):
     logger.info(f"The number of vectors: {len(embedding_queries), len(embedding_queries[0])}")
     logger.info(f"Show vector: {embedding_queries[0][0:5]} ... {embedding_queries[0][-5:]}")
 
-
-    scored_points = await client.search_batch(
-      collection_name=collection_name,
-      requests=[SearchRequest(vector=vector, limit=2) for vector in embedding_queries],
-   )
-    logger.info(f"Results type: {type(scored_points)}")
-    logger.info(f"Number of results: {len(scored_points)}")
-    #logger.info(f"Show results: {results}")
     
-    scored_points = [item for sublist in scored_points for item in sublist]  # Flatten the list of lists
-    logger.info(f"Number of scored points after flattening: {len(scored_points)}")
-
-
-
-    # gGet content from ids 
-
-    ids = [score_point.id for score_point in scored_points]
-    logger.info(f"Number of unique ids: {len(ids)}")
-
-    results = await client.retrieve(
-        collection_name=collection_name,
-        ids=ids,
-        )
+    # Retrieval
+    results = await retrieve_from_qdrant(embedding_queries, collection_name, client)
+    logger.info(f"Number of results retrieved: {len(results)}")
 
     # Re-ranking
     
-    # Context creation
+    # Generation
+    generation_model = init_chat_model(model="gpt-4.1", model_provider="openai")
+
     context = "\n".join([f"{res.payload.get("page_content", None)}" for res in results])
     logger.info(f"Context:\n{context}")
 
     # Generation
-    system_prompt = """
-    You are an assistant for question-answering tasks. you must be polite and helpful
-    Use the following pieces of retrieved context to answer the question.
-    If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.
-    """
+    system_prompt =(
+    "You are an assistant for question-answering tasks. you must be polite and helpful. "
+    "Use the following pieces of retrieved context to answer the question. "
+    "If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise."
+    )
     prompt_template = ChatPromptTemplate([
         ("system", system_prompt),
         ("human", f"Question: {query}"),
@@ -179,7 +130,7 @@ async def reponse(query: Query, db: Session = Depends(get_db)):
     messages = prompt_template.invoke({"query": query.query, "context":context})
     logger.info("Final messages to the model: {messages}")
 
-    response = model.astream(
+    response = generation_model.astream(
         input=messages,
     )
     

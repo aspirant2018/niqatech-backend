@@ -97,3 +97,8 @@ class LoginResponse(BaseModel):
     subject: str
     is_profile_complete: bool
     jwt_token: str
+
+
+class QueryExpantion(BaseModel):
+    """Always use this tool to structure your response to the user."""
+    queries: list[str] = Field(description="list of 4 of similar queries used for retrieval of documents")

@@ -2,8 +2,30 @@
 This file contains utility functions and classes for the Niqatech backend application.
 '''
 
+# App packages
+from app.v1.schemas.schemas import  QueryExpantion
+
+# Langchain
+from langchain.chat_models import init_chat_model
+from langchain_core.prompts import ChatPromptTemplate
+
+
+from typing import List, Dict
+
+
 import re
 import xlrd
+from dotenv import load_dotenv
+import logging
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger("__utils.py__")
+
+load_dotenv()
 
 
 def parse_xls(content):
@@ -64,3 +86,71 @@ def to_float_or_none(value):
     
 def parse_file():
     pass
+
+
+
+async def expand_query(query: str) -> List[str]:
+    """
+    Expand the given query into a list of similar queries using a language model.
+    """
+     
+    # Query expansion
+    query_template = (
+    "You are a search query expansion expert. Your task is to expand and improve the given query "
+    "to make it more detailed and comprehensive. Include relevant synonyms and related terms to improve retrieval. "
+    "Return only the expanded query without any explanations or additional text."
+    "Provide 4 different expanded queries in a list format."
+    )
+
+    query_expansion_model = init_chat_model(model="gpt-4.1",
+                                            model_provider="openai"
+                                            ).with_structured_output(QueryExpantion)
+
+    prompt_template = ChatPromptTemplate([
+        ("system", query_template),
+        ("human", f"{query}"),
+    ])
+
+    messages = prompt_template.invoke({"query": query})
+    queries = await query_expansion_model.ainvoke(messages)
+
+    queries = list(queries.queries)
+    logger.info(f"Queries after expantion:\n {queries}")
+
+    if isinstance(queries, list):
+        queries.append(query)
+    else:
+        logger.warning("The output of the query expansion model is not a list. Using the original query only.")
+        queries = [query]
+    
+    return queries
+
+from qdrant_client.http.models import SearchRequest
+
+
+async def retrieve_from_qdrant(embedding_queries, collection_name, client):
+    """
+    Retrieve documents from Qdrant based on the provided embedding queries.
+    """
+    scored_points = await client.search_batch(
+      collection_name=collection_name,
+      requests=[SearchRequest(vector=vector, limit=2) for vector in embedding_queries],
+   )
+    
+    logger.info(f"Results type: {type(scored_points)}")
+    logger.info(f"Number of results: {len(scored_points)}")
+    
+    scored_points = [item for sublist in scored_points for item in sublist]  # Flatten the list of lists
+    logger.info(f"Number of scored points after flattening: {len(scored_points)}")
+
+
+    # Get content from ids 
+    ids = [score_point.id for score_point in scored_points]
+    logger.info(f"Number of unique ids: {len(ids)}")
+
+    results = await client.retrieve(
+        collection_name=collection_name,
+        ids=ids,
+        )
+
+    return results
