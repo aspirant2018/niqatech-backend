@@ -177,19 +177,3 @@ async def reponse(file: UploadFile = File(...)):
 
         return JSONResponse(content='File processed and stored successfully',status_code=200)
 
-
-
-
-
-
-
-
-
-def split(content):
-    pass
-
-def embedding(chunk):
-    pass
-
-def store(vector):
-    pass
