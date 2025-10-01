@@ -29,7 +29,7 @@ class User(Base):
     city = Column(String, nullable=False)
     subject = Column(String, nullable=False)
     file = relationship("UploadedFile", back_populates="user", uselist=False) # Uselist => Ensures it's a one-to-one relationship, Back populate => biderectional
-    
+    created_at = Column(DateTime(timezone=True),server_default=func.now(), nullable=False)
     def __repr__(self):
         return f"<teacher(id={self.id}, email={self.email}, first_name={self.first_name}, last_name={self.last_name})>"
 
@@ -42,15 +42,9 @@ class UploadedFile(Base):
     file_id      = Column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True, nullable=False)
     user_id      = Column(String, ForeignKey(User.id, ondelete="CASCADE"), unique=True, nullable=False)
     file_name    = Column(String, nullable=False)
-    # hadou zedthoum jdoud
     storage_path = Column(String, nullable=False) 
-    created_at   = Column(DateTime(timezone=True), 
-                    server_default=func.now(), 
-                    nullable=False)
-    updated_at   = Column(DateTime(timezone=True), 
-                    onupdate=func.now(), 
-                    server_default=func.now(), 
-                    nullable=False)
+    created_at   = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at   = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     user = relationship("User", back_populates="file")
 
