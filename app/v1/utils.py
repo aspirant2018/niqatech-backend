@@ -93,8 +93,7 @@ async def expand_query(query: str) -> List[str]:
     """
     Expand the given query into a list of similar queries using a language model.
     """
-     
-    # Query expansion
+    
     query_template = (
     "You are a search query expansion expert. Your task is to expand and improve the given query "
     "to make it more detailed and comprehensive. Include relevant synonyms and related terms to improve retrieval. "
@@ -142,7 +141,6 @@ async def retrieve_from_qdrant(embedding_queries, collection_name, client):
     
     scored_points = [item for sublist in scored_points for item in sublist]  # Flatten the list of lists
     logger.info(f"Number of scored points after flattening: {len(scored_points)}")
-
 
     # Get content from ids 
     ids = [score_point.id for score_point in scored_points]

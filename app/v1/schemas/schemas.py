@@ -9,6 +9,7 @@ class AcademicLevelEnum(enum.Enum):
     secondary = "secondary"
     higher = "higher"
 
+
 class TokenData(BaseModel):
     token: str
 

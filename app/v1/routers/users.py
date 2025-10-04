@@ -37,6 +37,8 @@ router = APIRouter(
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 ALLOWED_FILE_EXTENSIONS = ['.xls', '.xlsx']
 
+def get_user_by_email(db: Session, email: str):
+    return db.query(User).filter(User.email == email).first()
 
 
 def populate_database(db: Session, file_id:str , data:dict) -> None:
@@ -220,22 +222,19 @@ async def register(
     else:
         logger.info("No file uploaded, proceeding with user registration without file data.")
         data = {}
-
-
-    new_user = User(
-        id=current_user,
-        email=email,
-        first_name=first_name,
-        last_name=last_name,
-        school_name=school_name,
-        academic_level=academic_level.lower(),
-        city=city,
-        subject=subject
-    )
     try:
-        db.add(new_user)
+        user = get_user_by_email(db, email)
+        logger.info(f"user is : {user}")
+
+        user.first_name = first_name
+        user.last_name = last_name
+        user.school_name = school_name
+        user.academic_level = academic_level.lower()
+        user.city = city
+        user.subject = subject
+
         db.commit()
-        db.refresh(new_user)
+        db.refresh(user)
 
     except Exception as e:
         logger.error(f"Error while registering user: {e}")

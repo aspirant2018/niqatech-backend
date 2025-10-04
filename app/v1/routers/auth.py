@@ -10,7 +10,6 @@ from app.v1.schemas.schemas import TokenData, ItemResponse, LoginResponse
 from fastapi import status
 from fastapi.responses import JSONResponse
 
-
 from jose import jwt
 import logging
 import os
@@ -34,6 +33,9 @@ router = APIRouter(
     tags=["Auth"],
     responses={404: {"description": "Not found"}}
 )
+
+def get_user_by_email(db: Session, email: str):
+    return db.query(User).filter(User.email == email).first()
 
 
 # localhost:8000/auth/google
@@ -65,10 +67,25 @@ async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
         
 
         app_jwt_token = generate_jwt_token(user_id, SECRET_KEY, ALGORITHM)
-        user = db.query(User).filter(User.email == email).one_or_none()
-        # User is not in the database
+        user = get_user_by_email(db, email)
+
+        # If user does not exist, prompt to complete profile
+        # but i want to create the user fist in db then prompt to complete profile
+        import secrets
         if not user:
             logger.info(f"User with ID {user_id} not found in the database.")
+            # create a new user with minimal info
+            new_user = User(
+                id=user_id,
+                email=email,
+                password=secrets.token_urlsafe(16), # Password can be set later via a password reset mechanism
+            )             
+            db.add(new_user)
+            db.commit()
+            db.refresh(new_user)
+
+            logger.info(f"New user created with ID {new_user.id} and email {new_user.email}.")
+
             return {
                 "message": "User first login. Please complete the profile.",
                 "user_id": user_id,
@@ -76,8 +93,6 @@ async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
                 "is_profile_complete": False,
                 "jwt_token": app_jwt_token
                 }
-        
-        # User is in the database
         if user:
             logger.info(f"User with ID {user_id} found in the database.")
             return JSONResponse(
@@ -118,8 +133,7 @@ async def login(token_data: TokenData, db: Session = Depends(get_db)):
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token")
 
-        user = db.query(User).filter(User.email == email).one_or_none()
-
+        user = get_user_by_email(db, email)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
@@ -142,3 +156,36 @@ async def login(token_data: TokenData, db: Session = Depends(get_db)):
     except jwt.JWTError as e:
         logger.error(f"JWT error: {e}")
         raise HTTPException(status_code=401, detail="Invalid token")
+
+
+
+from pydantic import BaseModel, EmailStr, constr
+import secrets
+
+
+class LocalSignUp(BaseModel):
+    email: EmailStr
+    password: constr(min_length=8)
+
+@router.post("/local/signup")
+async def local_signup(data: LocalSignUp, db: Session = Depends(get_db)):
+    if get_user_by_email(db, data.email):
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={"message": "User already exists"}
+        )
+    # Create user with minimal info; profile can be completed later
+    import uuid
+    new_user = User(
+        id = uuid.uuid4().hex,
+        email=data.email,
+        password=data.password,  # In production, hash the password before storing    
+    )
+
+    logger.info(f"Creating user with email: {new_user.email}, ID: {new_user.id}, Password: {new_user.password}")
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+
+    return {"message": "User can be created", "password": new_user.password}

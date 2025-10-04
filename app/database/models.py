@@ -22,12 +22,14 @@ class User(Base):
 
     id = Column(String, primary_key=True)
     email = Column(String, unique=True, nullable=False)
-    first_name = Column(String, nullable=False)
-    last_name = Column(String, nullable=False)
-    school_name = Column(String, nullable=False)
-    academic_level = Column(Enum(AcademicLevelEnum), nullable=False)
-    city = Column(String, nullable=False)
-    subject = Column(String, nullable=False)
+    password = Column(String, nullable=True)  
+
+    first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)
+    school_name = Column(String, nullable=True)
+    academic_level = Column(Enum(AcademicLevelEnum), nullable=True)
+    city = Column(String, nullable=True)
+    subject = Column(String, nullable=True)
     file = relationship("UploadedFile", back_populates="user", uselist=False) # Uselist => Ensures it's a one-to-one relationship, Back populate => biderectional
     created_at = Column(DateTime(timezone=True),server_default=func.now(), nullable=False)
     def __repr__(self):
