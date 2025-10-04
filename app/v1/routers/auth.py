@@ -84,7 +84,7 @@ async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
             db.commit()
             db.refresh(new_user)
 
-            logger.info(f"New user created with ID {new_user.id} and email {new_user.email}.")
+            logger.info(f"New user created with ID {new_user.id} and email {new_user.email}. password: {new_user.password}")
 
             return {
                 "message": "User first login. Please complete the profile.",
@@ -115,7 +115,7 @@ async def login(token_data: TokenData, db: Session = Depends(get_db)):
     logger.info(f"Token data: {token_data}")
 
     try:
-        # Verify the token
+        
         id_info = id_token.verify_oauth2_token(
             token_data.token,
             grequests.Request(),
@@ -125,12 +125,10 @@ async def login(token_data: TokenData, db: Session = Depends(get_db)):
         logger.info(f"ID info: {id_info}")
 
         # Extract user info
-        user_id = id_info['sub']
-        email   = id_info['email']
-
+        user_id, email = id_info['sub'], id_info['email']
         logger.info(f"User ID: {user_id}, Email: {email}")
 
-        if not user_id:
+        if not user_id or not email:
             raise HTTPException(status_code=401, detail="Invalid token")
 
         user = get_user_by_email(db, email)
@@ -161,6 +159,8 @@ async def login(token_data: TokenData, db: Session = Depends(get_db)):
 
 from pydantic import BaseModel, EmailStr, constr
 import secrets
+import uuid
+
 
 
 class LocalSignUp(BaseModel):
@@ -174,8 +174,7 @@ async def local_signup(data: LocalSignUp, db: Session = Depends(get_db)):
             status_code=status.HTTP_409_CONFLICT,
             content={"message": "User already exists"}
         )
-    # Create user with minimal info; profile can be completed later
-    import uuid
+    
     new_user = User(
         id = uuid.uuid4().hex,
         email=data.email,
@@ -187,5 +186,42 @@ async def local_signup(data: LocalSignUp, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
 
+    app_jwt_token = generate_jwt_token(new_user.id, SECRET_KEY, ALGORITHM)
 
-    return {"message": "User can be created", "password": new_user.password}
+    # In a real application, send a verification email here
+
+    return {
+        "message": "User first login. Please complete the profile.",
+        "user_id": new_user.id,
+        "email": new_user.email,
+        "is_profile_complete": False,
+        "jwt_token": app_jwt_token
+        }
+
+@router.post("/local/login", response_model=LoginResponse)
+async def local_login(data: LocalSignUp, db: Session = Depends(get_db)):
+    user = get_user_by_email(db, data.email)
+    if not user or user.password != data.password:
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"message": "Invalid email or password"}
+        )
+    
+    logger.info(f"User {user.email} logged in successfully.")
+
+    return {
+        "message": "User logged in successfully",
+        "user_id": user.id,
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "school_name": user.school_name,
+        "academic_level": user.academic_level,
+        "city": user.city,
+        "subject": user.subject,
+        "is_profile_complete": True,
+        "jwt_token": generate_jwt_token(user.id, SECRET_KEY, ALGORITHM)
+    }
+
+
+

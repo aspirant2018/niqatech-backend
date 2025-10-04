@@ -25,7 +25,10 @@ import os
 
 logger = logging.getLogger("__routers/users.py__")
 
-
+async def save_file(content, path) -> None:
+    """ Save uploaded file to the specified path."""
+    with open(path, 'wb') as f:
+        f .write(content)
 
 router = APIRouter(
     prefix="/users",
@@ -163,16 +166,10 @@ async def register(
         # parse the fil
         try:   
             content = await file.read()
-            if len(content) > MAX_FILE_SIZE:
+            if len(content) > MAX_FILE_SIZE or len(content) == 0:
                 raise HTTPException(
                     status_code=status.HTTP_431_REQUEST_HEADER_FIELDS_TOO_LARGE,
-                    detail=f"File too large. Maximum size is {MAX_FILE_SIZE // {1024*1024}} MB")
-
-            if len(content) == 0:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Empty file is provided")
-
+                    detail=f"File too large or equal to 'zero'. Maximum size is {MAX_FILE_SIZE // {1024*1024}} MB")
             try:    
                 data = parse_xls(content)
             except Exception as parse_error:
@@ -195,6 +192,8 @@ async def register(
                 # Ensure directory exists
                 storage_dir = os.path.dirname(uploaded_file.storage_path)
                 os.makedirs(storage_dir, exist_ok=True)
+
+                # await save_file(content, uploaded_file.storage_path)
 
                 # Save the file
                 with open(uploaded_file.storage_path, 'wb') as f:
