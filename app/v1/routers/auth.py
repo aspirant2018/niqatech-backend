@@ -200,6 +200,10 @@ async def local_signup(data: LocalSignUp, db: Session = Depends(get_db)):
 
 @router.post("/local/login", response_model=LoginResponse)
 async def local_login(data: LocalSignUp, db: Session = Depends(get_db)):
+    logger.info("Local login request received.")
+    logger.info(f"Login email: {data.email}")
+    logger.info(f"Login password: {data.password}")
+
     user = get_user_by_email(db, data.email)
     if not user or user.password != data.password:
         return JSONResponse(
