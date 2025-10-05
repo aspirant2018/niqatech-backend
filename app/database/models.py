@@ -27,6 +27,9 @@ class User(Base):
     # Authentication
     password = Column(String, nullable=True)  
     auth_provider = Column(String, nullable=False)  # e.g., 'google', 'facebook', 'local'
+    is_active = Column(Boolean, default=True, nullable=False)
+    is_profile_complete = Column(Boolean, default=False)
+    last_login = Column(DateTime(timezone=True), nullable=True)
 
     # Profile information
     first_name = Column(String, nullable=True)
@@ -36,14 +39,14 @@ class User(Base):
     city = Column(String, nullable=True)
     subject = Column(String, nullable=True)
     
+    # Timestamps
+    created_at = Column(DateTime(timezone=True),server_default=func.now(), nullable=False)
+    
     # Relationships
     file = relationship("UploadedFile",
                         back_populates="user", 
                         uselist=False
                         ) # Uselist => Ensures it's a one-to-one relationship, Back populate => biderectional
-    
-    # Timestamps
-    created_at = Column(DateTime(timezone=True),server_default=func.now(), nullable=False)
     
     def __repr__(self):
         return (
@@ -51,7 +54,43 @@ class User(Base):
             f"name={self.first_name} {self.last_name}, "
             f"provider={self.auth_provider})>"
         )
+    
+    @property
+    def full_name(self):
+        if self.first_name and self.last_name:
+            return f"{self.first_name} {self.last_name}"
+        return self.first_name or self.last_name or "Unknown User"
 
+    @property
+    def is_profile_complete(self)-> bool:
+        required_fields = [
+            self.first_name,
+            self.last_name,
+            self.school_name,
+            self.academic_level,
+            self.city,
+            self.subject
+        ]
+        return all(required_fields)
+    @property
+    def to_dict(self)-> dict:
+        """Return a dictionary representation of the user, excluding sensitive info."""
+        return {
+            "id": self.id,
+            "email": self.email,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "full_name": self.full_name,
+            "school_name": self.school_name,
+            "academic_level": self.academic_level.value if self.academic_level else None,
+            "city": self.city,
+            "subject": self.subject,
+            "auth_provider": self.auth_provider,
+            "is_profile_complete": self.is_profile_complete,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "last_login": self.last_login.isoformat() if self.last_login else None
+        }
+    
 UPLOAD_DIR = "app/uploads"
 
 class UploadedFile(Base):

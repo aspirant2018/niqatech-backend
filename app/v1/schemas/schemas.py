@@ -25,7 +25,7 @@ class ProfileData(BaseModel):
     
 
 
-class ItemResponse(BaseModel):
+class SignUpResponse(BaseModel):
     message: str
     user_id: str
     email: str
@@ -89,7 +89,7 @@ class BulkGradeUpdate(BaseModel):
 class LoginResponse(BaseModel):
     message: str
     user_id: str
-    email: str
+    email: EmailStr
     first_name: str
     last_name: str
     school_name: str
@@ -98,7 +98,6 @@ class LoginResponse(BaseModel):
     subject: str
     is_profile_complete: bool
     jwt_token: str
-
 
 class QueryExpantion(BaseModel):
     """Always use this tool to structure your response to the user."""

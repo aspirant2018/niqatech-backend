@@ -6,14 +6,18 @@ from app.v1.auth.jwt_utils import generate_jwt_token
 
 from app.database.models import User
 from app.database.database import get_db
-from app.v1.schemas.schemas import TokenData, ItemResponse, LoginResponse
+from app.v1.schemas.schemas import TokenData, SignUpResponse, LoginResponse
 from fastapi import status
 from fastapi.responses import JSONResponse
 
 from jose import jwt
 import logging
 import os
+
+from pydantic import BaseModel, EmailStr, constr
 import secrets
+import uuid
+from datetime import datetime
 
 
 logging.basicConfig(
@@ -26,6 +30,7 @@ logger = logging.getLogger("__routers/auth.py__")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 SECRET_KEY = os.getenv("SECRET_KEY")  # Use a secure key in production
 ALGORITHM = os.getenv("ALGORITHM")  # Use a secure algorithm
+
 
 
 
@@ -65,17 +70,14 @@ async def verify_google_token(token: TokenData):
             detail="Invalid Google token"
         )
     
-@router.post("/google", response_model=ItemResponse)
+@router.post("/google/signup", response_model=SignUpResponse)
 async def signup(token_data: TokenData, db: Session = Depends(get_db)):
     """ Authenticate user via Google OAuth token."""
     logger.info("Google sign-up request received.")
 
     
     google_user = await verify_google_token(token_data)
-
-        
     logger.info(f"User ID: {google_user['user_id']}, Email: {google_user['email']}")
-
     existing_user = get_user_by_email(db, google_user['email'])
 
     if existing_user:
@@ -92,7 +94,7 @@ async def signup(token_data: TokenData, db: Session = Depends(get_db)):
         new_user = User(
                     id=google_user['user_id'],
                     email=google_user['email'],
-                    password=None, # Password can be set later via a password reset mechanism
+                    password=None, # Password can be set later via algorithma password reset mechanism
                     auth_provider= "google"
                     )         
             
@@ -101,9 +103,7 @@ async def signup(token_data: TokenData, db: Session = Depends(get_db)):
         db.refresh(new_user)
 
         logger.info(f"New user created with ID {new_user.id} and email {new_user.email}. password: {new_user.password}")
-
         app_jwt_token = generate_jwt_token(google_user['user_id'], SECRET_KEY, ALGORITHM)
-
 
         return {
                 "message": "User has been created. Please complete the profile.",
@@ -118,12 +118,11 @@ async def signup(token_data: TokenData, db: Session = Depends(get_db)):
 
 
 
-@router.post("/login", response_model=LoginResponse)
+@router.post("/google/login", response_model=LoginResponse)
 async def google_login(token_data: TokenData, db: Session = Depends(get_db)):
     """Login user with JWT token"""
     
     logger.info("Login request received.")
-    logger.info(f"Token data: {token_data}")
     try:
         google_user = await verify_google_token(token_data)
         user = get_user_by_email(db, google_user['email'])
@@ -131,7 +130,13 @@ async def google_login(token_data: TokenData, db: Session = Depends(get_db)):
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
+        import datetime
+        from datetime import datetime
         logger.info(f"User {user.email} logged in successfully.")
+
+        user.last_login = datetime.now()
+        db.commit()
+
         return {
             "message": "User logged in successfully",
             "user_id": user.id,
@@ -142,7 +147,7 @@ async def google_login(token_data: TokenData, db: Session = Depends(get_db)):
             "academic_level": user.academic_level,
             "city": user.city,
             "subject": user.subject,
-            "is_profile_complete": True,
+            "is_profile_complete": user.is_profile_complete,
             "jwt_token": generate_jwt_token(google_user['user_id'], SECRET_KEY, ALGORITHM)
         }
 
@@ -152,17 +157,13 @@ async def google_login(token_data: TokenData, db: Session = Depends(get_db)):
 
 
 
-from pydantic import BaseModel, EmailStr, constr
-import secrets
-import uuid
-
 
 
 class LocalSignUp(BaseModel):
     email: EmailStr
     password: constr(min_length=8)
 
-@router.post("/local/signup")
+@router.post("/signup", response_model=SignUpResponse)
 async def local_signup(data: LocalSignUp, db: Session = Depends(get_db)):
     if get_user_by_email(db, data.email):
         return JSONResponse(
@@ -185,7 +186,6 @@ async def local_signup(data: LocalSignUp, db: Session = Depends(get_db)):
     app_jwt_token = generate_jwt_token(new_user.id, SECRET_KEY, ALGORITHM)
 
     # In a real application, send a verification email here
-
     return {
         "message": "User first login. Please complete the profile.",
         "user_id": new_user.id,
@@ -194,7 +194,7 @@ async def local_signup(data: LocalSignUp, db: Session = Depends(get_db)):
         "jwt_token": app_jwt_token
         }
 
-@router.post("/local/login", response_model=LoginResponse)
+@router.post("/login", response_model=LoginResponse)
 async def local_login(data: LocalSignUp, db: Session = Depends(get_db)):
     logger.info("Local login request received.")
     logger.info(f"Login email: {data.email}")
@@ -206,8 +206,19 @@ async def local_login(data: LocalSignUp, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             content={"message": "Invalid email or password"}
         )
+    if not user.is_profile_complete:
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={"message": "Profile incomplete. Please complete your profile."}
+        )
     
     logger.info(f"User {user.email} logged in successfully.")
+    try:
+        user.last_login = datetime.now()
+        db.commit()
+    except ValueError as e:
+        logger.error(f"Error updating last login: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
     return {
         "message": "User logged in successfully",
@@ -219,7 +230,7 @@ async def local_login(data: LocalSignUp, db: Session = Depends(get_db)):
         "academic_level": user.academic_level,
         "city": user.city,
         "subject": user.subject,
-        "is_profile_complete": True,
+        "is_profile_complete": user.is_profile_complete,
         "jwt_token": generate_jwt_token(user.id, SECRET_KEY, ALGORITHM)
     }
 
