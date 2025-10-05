@@ -19,22 +19,38 @@ import os
 
 class User(Base):
     __tablename__ = 'users'
-
+    
+    # Primary identifiers
     id = Column(String, primary_key=True)
     email = Column(String, unique=True, nullable=False)
-    password = Column(String, nullable=True)  
 
+    # Authentication
+    password = Column(String, nullable=True)  
+    auth_provider = Column(String, nullable=False)  # e.g., 'google', 'facebook', 'local'
+
+    # Profile information
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
     school_name = Column(String, nullable=True)
     academic_level = Column(Enum(AcademicLevelEnum), nullable=True)
     city = Column(String, nullable=True)
     subject = Column(String, nullable=True)
-    file = relationship("UploadedFile", back_populates="user", uselist=False) # Uselist => Ensures it's a one-to-one relationship, Back populate => biderectional
+    
+    # Relationships
+    file = relationship("UploadedFile",
+                        back_populates="user", 
+                        uselist=False
+                        ) # Uselist => Ensures it's a one-to-one relationship, Back populate => biderectional
+    
+    # Timestamps
     created_at = Column(DateTime(timezone=True),server_default=func.now(), nullable=False)
+    
     def __repr__(self):
-        return f"<teacher(id={self.id}, email={self.email}, first_name={self.first_name}, last_name={self.last_name})>"
-
+        return (
+            f"<User(id={self.id}, email={self.email}, "
+            f"name={self.first_name} {self.last_name}, "
+            f"provider={self.auth_provider})>"
+        )
 
 UPLOAD_DIR = "app/uploads"
 
