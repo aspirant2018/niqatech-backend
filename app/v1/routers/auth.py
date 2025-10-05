@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from jose import jwt
 import logging
 import os
+import secrets
 
 
 logging.basicConfig(
@@ -37,106 +38,100 @@ router = APIRouter(
 def get_user_by_email(db: Session, email: str):
     return db.query(User).filter(User.email == email).first()
 
-
-# localhost:8000/auth/google
-# called in signin component in frontend
-
-@router.post("/google", response_model=ItemResponse)
-async def google_auth(token_data: TokenData, db: Session = Depends(get_db)):
-    """ Authenticate user via Google OAuth token."""
-
-    #logger.info(f"Google token received from frontend, The Token: {token_data}")
-
+async def verify_google_token(token: TokenData):
+    """ Verify OAuth token with Google."""
     try:
         id_info = id_token.verify_oauth2_token(
-            token_data.token,
+            token.token,
             grequests.Request(),
             GOOGLE_CLIENT_ID
         )
-
-        logger.info(f"ID info: {id_info}")
-
-        # Extract user info
         user_id = id_info.get('sub', None)
-        email   = id_info.get('email', None)
+        email = id_info.get('email', None)
 
         if not user_id or not email:
             raise HTTPException(status_code=401, detail="Invalid token")
 
-        logger.info(f"User ID: {user_id}, Email: {email}")
+        return {
+            'user_id': user_id,
+            'email': email,
+            'name': id_info.get('name'),
+            'picture': id_info.get('picture')
+        }
+    except ValueError as e:
+        logger.error(f"Google token verification failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Google token"
+        )
+    
+@router.post("/google", response_model=ItemResponse)
+async def signup(token_data: TokenData, db: Session = Depends(get_db)):
+    """ Authenticate user via Google OAuth token."""
+    logger.info("Google sign-up request received.")
+
+    
+    google_user = await verify_google_token(token_data)
+
         
+    logger.info(f"User ID: {google_user['user_id']}, Email: {google_user['email']}")
 
-        app_jwt_token = generate_jwt_token(user_id, SECRET_KEY, ALGORITHM)
-        user = get_user_by_email(db, email)
+    existing_user = get_user_by_email(db, google_user['email'])
 
-        # If user does not exist, prompt to complete profile
-        # but i want to create the user fist in db then prompt to complete profile
-        import secrets
-        if not user:
-            logger.info(f"User with ID {user_id} not found in the database.")
-            # create a new user with minimal info
-            new_user = User(
-                id=user_id,
-                email=email,
-                password=secrets.token_urlsafe(16), # Password can be set later via a password reset mechanism
-            )             
-            db.add(new_user)
-            db.commit()
-            db.refresh(new_user)
+    if existing_user:
+        logger.warning(f"Signup attempted for existing user: {google_user['email']}")
+        raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User already exists. Please login instead."
+            )
 
-            logger.info(f"New user created with ID {new_user.id} and email {new_user.email}. password: {new_user.password}")
+    # If user does not exist, prompt to complete profile
+    logger.info(f"User with ID {google_user['user_id']} not found in the database.")
+    
+    try:
+        new_user = User(
+                    id=google_user['user_id'],
+                    email=google_user['email'],
+                    password=None, # Password can be set later via a password reset mechanism
+                    auth_provider= "google"
+                    )         
+            
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
 
-            return {
-                "message": "User first login. Please complete the profile.",
-                "user_id": user_id,
-                "email": email,
+        logger.info(f"New user created with ID {new_user.id} and email {new_user.email}. password: {new_user.password}")
+
+        app_jwt_token = generate_jwt_token(google_user['user_id'], SECRET_KEY, ALGORITHM)
+
+
+        return {
+                "message": "User has been created. Please complete the profile.",
+                "user_id": google_user['user_id'],
+                "email": google_user['email'],
                 "is_profile_complete": False,
                 "jwt_token": app_jwt_token
                 }
-        if user:
-            logger.info(f"User with ID {user_id} found in the database.")
-            return JSONResponse(
-                status_code=status.HTTP_409_CONFLICT,
-                content={"message": "User already exists"}
-            )
-        
+
     except ValueError:
         raise HTTPException(status_code=401, detail="Invalid ID token")
 
 
 
 @router.post("/login", response_model=LoginResponse)
-async def login(token_data: TokenData, db: Session = Depends(get_db)):
-    """
-    Login user with JWT token.
-    """
+async def google_login(token_data: TokenData, db: Session = Depends(get_db)):
+    """Login user with JWT token"""
     
     logger.info("Login request received.")
     logger.info(f"Token data: {token_data}")
-
     try:
+        google_user = await verify_google_token(token_data)
+        user = get_user_by_email(db, google_user['email'])
         
-        id_info = id_token.verify_oauth2_token(
-            token_data.token,
-            grequests.Request(),
-            GOOGLE_CLIENT_ID
-        )
-
-        logger.info(f"ID info: {id_info}")
-
-        # Extract user info
-        user_id, email = id_info['sub'], id_info['email']
-        logger.info(f"User ID: {user_id}, Email: {email}")
-
-        if not user_id or not email:
-            raise HTTPException(status_code=401, detail="Invalid token")
-
-        user = get_user_by_email(db, email)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
         logger.info(f"User {user.email} logged in successfully.")
-
         return {
             "message": "User logged in successfully",
             "user_id": user.id,
@@ -148,7 +143,7 @@ async def login(token_data: TokenData, db: Session = Depends(get_db)):
             "city": user.city,
             "subject": user.subject,
             "is_profile_complete": True,
-            "jwt_token": generate_jwt_token(user_id, SECRET_KEY, ALGORITHM)
+            "jwt_token": generate_jwt_token(google_user['user_id'], SECRET_KEY, ALGORITHM)
         }
 
     except jwt.JWTError as e:
@@ -179,6 +174,7 @@ async def local_signup(data: LocalSignUp, db: Session = Depends(get_db)):
         id = uuid.uuid4().hex,
         email=data.email,
         password=data.password,  # In production, hash the password before storing    
+        auth_provider="local"
     )
 
     logger.info(f"Creating user with email: {new_user.email}, ID: {new_user.id}, Password: {new_user.password}")
