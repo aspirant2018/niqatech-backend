@@ -29,6 +29,7 @@ load_dotenv()
 
 
 def parse_xls(content):
+    """ Parse the content of an XLS file and extract structured data."""
 
 
     workbook = xlrd.open_workbook(file_contents=content, ignore_workbook_corruption=True, formatting_info=True)
@@ -152,3 +153,29 @@ async def retrieve_from_qdrant(embedding_queries, collection_name, client):
         )
 
     return results
+
+
+from passlib.context import CryptContext
+
+PIPPER = "mysecretpepper"
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def hash_password(password:str):
+    """ Hash a plaintext password using bcrypt."""
+
+    peppred_password = password + PIPPER
+
+    return pwd_context.hash(peppred_password)
+
+def verify_password(plain_password, hashed_password):
+    """ Verify a plaintext password against a hashed password."""
+    
+    peppred_password = plain_password + PIPPER
+
+    return pwd_context.verify(peppred_password, hashed_password)
+
+hashed_password = hash_password("myplaintextpassword")
+print(f"Hashed password: {hashed_password}")
+print(verify_password("myplaintextpassword", hashed_password))  # Should return True
+print(verify_password("wrongpassword", hashed_password))  # Should return False
