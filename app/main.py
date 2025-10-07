@@ -83,28 +83,14 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
-app.include_router(status.router,
-                   #prefix="/v1"
-                   )
-app.include_router(auth.router,
-                   #prefix="/v1"
-                   )
-app.include_router(users.router,
-                   #prefix="/v1"
-                   )
-app.include_router(me.router,
-                   #prefix="/v1"
-                   )
-app.include_router(assistant.router
-                   )
-app.include_router(file.router
-                   )
-
-app.include_router(classrooms.router
-                   )
-
-app.include_router(students.router
-                   )
+app.include_router(status.router)
+app.include_router(auth.router)
+app.include_router(users.router)
+app.include_router(me.router)
+app.include_router(assistant.router)
+app.include_router(file.router)
+app.include_router(classrooms.router)
+app.include_router(students.router)
 
 
 if __name__ == "__main__":
