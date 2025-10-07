@@ -25,7 +25,7 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
 
     # Authentication
-    password = Column(String, nullable=True)  
+    hash_password = Column(String, nullable=True)  
     auth_provider = Column(String, nullable=False)  # e.g., 'google', 'facebook', 'local'
     is_active = Column(Boolean, default=True, nullable=False)
     is_profile_complete = Column(Boolean, default=False)

@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from jose import jwt
 import logging
 import os
+from app.v1.utils import hash_password, verify_password
 
 from pydantic import BaseModel, EmailStr, constr
 import secrets
@@ -94,7 +95,7 @@ async def signup(token_data: TokenData, db: Session = Depends(get_db)):
         new_user = User(
                     id=google_user['user_id'],
                     email=google_user['email'],
-                    password=None, # Password can be set later via algorithma password reset mechanism
+                    hash_password=None, # Password can be set later via algorithma password reset mechanism
                     auth_provider= "google"
                     )         
             
@@ -174,7 +175,7 @@ async def local_signup(data: LocalSignUp, db: Session = Depends(get_db)):
     new_user = User(
         id = uuid.uuid4().hex,
         email=data.email,
-        password=data.password,  # In production, hash the password before storing    
+        hash_password=hash_password(data.password),   
         auth_provider="local"
     )
 
@@ -183,7 +184,7 @@ async def local_signup(data: LocalSignUp, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
 
-    app_jwt_token = generate_jwt_token(new_user.id, SECRET_KEY, ALGORITHM)
+    access_token = generate_jwt_token(new_user.id, SECRET_KEY, ALGORITHM)
 
     # In a real application, send a verification email here
     return {
@@ -191,7 +192,7 @@ async def local_signup(data: LocalSignUp, db: Session = Depends(get_db)):
         "user_id": new_user.id,
         "email": new_user.email,
         "is_profile_complete": False,
-        "jwt_token": app_jwt_token
+        "jwt_token": access_token
         }
 
 @router.post("/login", response_model=LoginResponse)
