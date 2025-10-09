@@ -175,7 +175,7 @@ async def local_signup(data: LocalSignUp, db: Session = Depends(get_db)):
     new_user = User(
         id = uuid.uuid4().hex,
         email=data.email,
-        hash_password=hash_password(data.password),   
+        hash_password=data.password,   
         auth_provider="local"
     )
 
