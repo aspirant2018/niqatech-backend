@@ -103,7 +103,7 @@ async def signup(token_data: TokenData, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(new_user)
 
-        logger.info(f"New user created with ID {new_user.id} and email {new_user.email}. password: {new_user.password}")
+        logger.info(f"New user created with ID {new_user.id} and email {new_user.email}. password: {new_user.hash_password}")
         app_jwt_token = generate_jwt_token(google_user['user_id'], SECRET_KEY, ALGORITHM)
 
         return {
@@ -179,7 +179,7 @@ async def local_signup(data: LocalSignUp, db: Session = Depends(get_db)):
         auth_provider="local"
     )
 
-    logger.info(f"Creating user with email: {new_user.email}, ID: {new_user.id}, Password: {new_user.password}")
+    logger.info(f"Creating user with email: {new_user.email}, ID: {new_user.id}, Password: {new_user.hash_password}")
     db.add(new_user)
     db.commit()
     db.refresh(new_user)

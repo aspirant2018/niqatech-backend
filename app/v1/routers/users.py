@@ -164,7 +164,7 @@ async def complete(
         user.academic_level = academic_level.lower()
         user.city = city
         user.subject = subject
-        user.is_profile_complete = True
+        user.profile_complete = True
 
         if uploaded_file:
             db.add(uploaded_file)
