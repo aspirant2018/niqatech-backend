@@ -101,7 +101,7 @@ async def signup(token_data: TokenData, db: Session = Depends(get_db)):
         db.refresh(new_user)
 
         logger.info(f"New user created with ID {new_user.id} and email {new_user.email}. password: {new_user.hash_password}")
-        access_token = create_access_token(google_user)
+        access_token = await create_access_token(google_user)
 
         return {
                 "message": "User has been created. Please complete the profile.",
@@ -113,6 +113,8 @@ async def signup(token_data: TokenData, db: Session = Depends(get_db)):
 
     except ValueError:
         raise HTTPException(status_code=401, detail="Invalid ID token")
+
+        #
 
 
 
@@ -134,6 +136,8 @@ async def google_login(token_data: TokenData, db: Session = Depends(get_db)):
         user.last_login = datetime.now()
         db.commit()
 
+        access_token = await create_access_token(google_user)
+
         return {
             "message": "User logged in successfully",
             "user_id": user.id,
@@ -145,7 +149,7 @@ async def google_login(token_data: TokenData, db: Session = Depends(get_db)):
             "city": user.city,
             "subject": user.subject,
             "is_profile_complete": user.is_profile_complete,
-            "jwt_token": create_access_token(google_user)
+            "jwt_token": access_token
         }
 
     except jwt.JWTError as e:
@@ -179,8 +183,7 @@ async def local_signup(data: LocalSignUp, db: Session = Depends(get_db)):
             'email': new_user.email,
         }
 
-
-    access_token = create_access_token(payload)
+    access_token = await create_access_token(payload)
 
     # In a real application, send a verification email here
     return {
@@ -216,6 +219,12 @@ async def local_login(data: LocalSignUp, db: Session = Depends(get_db)):
         logger.error(f"Error updating last login: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+    payload = {
+            'user_id': user.id,
+            'email': user.email,
+    }
+
+    access_token = await create_access_token(payload)
     return {
         "message": "User logged in successfully",
         "user_id": user.id,
@@ -227,7 +236,7 @@ async def local_login(data: LocalSignUp, db: Session = Depends(get_db)):
         "city": user.city,
         "subject": user.subject,
         "is_profile_complete": user.is_profile_complete,
-        "jwt_token": create_access_token(user.id, SECRET_KEY, ALGORITHM)
+        "jwt_token": access_token
     }
 
 
