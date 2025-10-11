@@ -7,7 +7,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 import uvicorn
 import logging
-from app.v1.routers import auth, users, status, me, assistant, file, classrooms, students
+from app.v1.routers import (
+    auth,
+    users,
+    status,
+    me,
+    assistant,
+    file,
+    classrooms,
+    students,
+    admin
+    )
 
 from contextlib import asynccontextmanager
 from qdrant_client import QdrantClient
@@ -91,6 +101,7 @@ app.include_router(assistant.router)
 app.include_router(file.router)
 app.include_router(classrooms.router)
 app.include_router(students.router)
+app.include_router(admin.router)
 
 
 if __name__ == "__main__":
