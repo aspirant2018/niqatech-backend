@@ -129,7 +129,18 @@ async def google_login(token_data: TokenData, db: Session = Depends(get_db)):
         
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-
+        
+        if not user.is_profile_complete:
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content={
+                    "message": "Profile incomplete. Please complete your profile.",
+                    "user_id": user.id,
+                    "email": user.email,
+                    "is_profile_complete": False,
+                    "jwt_token": await create_access_token(google_user)
+                }
+            )
 
         logger.info(f"User {user.email} logged in successfully.")
 
@@ -137,6 +148,8 @@ async def google_login(token_data: TokenData, db: Session = Depends(get_db)):
         db.commit()
 
         access_token = await create_access_token(google_user)
+
+
 
         return {
             "message": "User logged in successfully",
