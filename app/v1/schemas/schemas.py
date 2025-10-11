@@ -1,5 +1,5 @@
-from pydantic import BaseModel , Field, EmailStr, confloat
-from typing import List, Optional
+from pydantic import BaseModel , Field, EmailStr, confloat, constr
+from typing import List, Optional, Annotated
 import enum
 
 
@@ -23,6 +23,12 @@ class ProfileData(BaseModel):
     city: str
     subject: str
     
+
+
+
+class LocalSignUp(BaseModel):
+    email: EmailStr
+    password: constr(min_length=8)
 
 
 class SignUpResponse(BaseModel):

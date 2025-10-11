@@ -155,23 +155,22 @@ async def retrieve_from_qdrant(embedding_queries, collection_name, client):
     return results
 
 
+
+
 from passlib.context import CryptContext
+from pwdlib import PasswordHash
 
 #PIPPER = "mysecretpepper"
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+password_hash = PasswordHash.recommended()
 
 
-def hash_password(password:str):
-    """ Hash a plaintext password using bcrypt."""
 
-    peppred_password = password 
+def get_password_hash(password):
+    return password_hash.hash(password)
 
-    return pwd_context.hash(peppred_password)
 
-def verify_password(plain_password, hashed_password):
-    """ Verify a plaintext password against a hashed password."""
-    
-    peppred_password = plain_password
 
-    return pwd_context.verify(peppred_password, hashed_password)
 
+def verify_password(plain_password:str, hashed_password:str):
+    return password_hash.verify(plain_password, hashed_password)
