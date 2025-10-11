@@ -2,24 +2,25 @@ from fastapi import APIRouter, Depends, HTTPException
 from google.auth.transport import requests as grequests
 from google.oauth2 import id_token
 from sqlalchemy.orm import Session
-from app.v1.auth.jwt_utils import generate_jwt_token
+from app.v1.auth.jwt_utils import create_access_token
 
 from app.database.models import User
 from app.database.database import get_db
-from app.v1.schemas.schemas import TokenData, SignUpResponse, LoginResponse
+from app.v1.schemas.schemas import TokenData, SignUpResponse, LoginResponse, LocalSignUp
 from fastapi import status
 from fastapi.responses import JSONResponse
 
 from jose import jwt
 import logging
 import os
-from app.v1.utils import hash_password, verify_password
+from app.v1.utils import get_password_hash, verify_password 
 
 from pydantic import BaseModel, EmailStr, constr
 import secrets
 import uuid
 from datetime import datetime
-
+import datetime
+from datetime import datetime
 
 logging.basicConfig(
     level=logging.INFO,
@@ -29,8 +30,6 @@ logger = logging.getLogger("__routers/auth.py__")
 
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-SECRET_KEY = os.getenv("SECRET_KEY")  # Use a secure key in production
-ALGORITHM = os.getenv("ALGORITHM")  # Use a secure algorithm
 
 
 
@@ -61,8 +60,6 @@ async def verify_google_token(token: TokenData):
         return {
             'user_id': user_id,
             'email': email,
-            'name': id_info.get('name'),
-            'picture': id_info.get('picture')
         }
     except ValueError as e:
         logger.error(f"Google token verification failed: {e}")
@@ -104,14 +101,14 @@ async def signup(token_data: TokenData, db: Session = Depends(get_db)):
         db.refresh(new_user)
 
         logger.info(f"New user created with ID {new_user.id} and email {new_user.email}. password: {new_user.hash_password}")
-        app_jwt_token = generate_jwt_token(google_user['user_id'], SECRET_KEY, ALGORITHM)
+        access_token = create_access_token(google_user)
 
         return {
                 "message": "User has been created. Please complete the profile.",
                 "user_id": google_user['user_id'],
                 "email": google_user['email'],
                 "is_profile_complete": False,
-                "jwt_token": app_jwt_token
+                "jwt_token": access_token
                 }
 
     except ValueError:
@@ -131,8 +128,7 @@ async def google_login(token_data: TokenData, db: Session = Depends(get_db)):
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        import datetime
-        from datetime import datetime
+
         logger.info(f"User {user.email} logged in successfully.")
 
         user.last_login = datetime.now()
@@ -149,7 +145,7 @@ async def google_login(token_data: TokenData, db: Session = Depends(get_db)):
             "city": user.city,
             "subject": user.subject,
             "is_profile_complete": user.is_profile_complete,
-            "jwt_token": generate_jwt_token(google_user['user_id'], SECRET_KEY, ALGORITHM)
+            "jwt_token": create_access_token(google_user)
         }
 
     except jwt.JWTError as e:
@@ -157,12 +153,6 @@ async def google_login(token_data: TokenData, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
-
-
-
-class LocalSignUp(BaseModel):
-    email: EmailStr
-    password: constr(min_length=8)
 
 @router.post("/signup", response_model=SignUpResponse)
 async def local_signup(data: LocalSignUp, db: Session = Depends(get_db)):
@@ -175,7 +165,7 @@ async def local_signup(data: LocalSignUp, db: Session = Depends(get_db)):
     new_user = User(
         id = uuid.uuid4().hex,
         email=data.email,
-        hash_password=data.password,   
+        hash_password=get_password_hash(data.password),   
         auth_provider="local"
     )
 
@@ -184,7 +174,13 @@ async def local_signup(data: LocalSignUp, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
 
-    access_token = generate_jwt_token(new_user.id, SECRET_KEY, ALGORITHM)
+    payload = {
+            'user_id': new_user.id,
+            'email': new_user.email,
+        }
+
+
+    access_token = create_access_token(payload)
 
     # In a real application, send a verification email here
     return {
@@ -198,11 +194,10 @@ async def local_signup(data: LocalSignUp, db: Session = Depends(get_db)):
 @router.post("/login", response_model=LoginResponse)
 async def local_login(data: LocalSignUp, db: Session = Depends(get_db)):
     logger.info("Local login request received.")
-    logger.info(f"Login email: {data.email}")
-    logger.info(f"Login password: {data.password}")
 
+    logger.info(f"Login email: {data.email}. login password: {data.password}    ")
     user = get_user_by_email(db, data.email)
-    if not user or user.password != data.password:
+    if not user or not verify_password(data.password, user.hash_password):
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
             content={"message": "Invalid email or password"}
@@ -232,7 +227,7 @@ async def local_login(data: LocalSignUp, db: Session = Depends(get_db)):
         "city": user.city,
         "subject": user.subject,
         "is_profile_complete": user.is_profile_complete,
-        "jwt_token": generate_jwt_token(user.id, SECRET_KEY, ALGORITHM)
+        "jwt_token": create_access_token(user.id, SECRET_KEY, ALGORITHM)
     }
 
 
