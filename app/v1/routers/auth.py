@@ -132,7 +132,7 @@ async def google_login(token_data: TokenData, db: Session = Depends(get_db)):
         
         if not user.is_profile_complete:
             return JSONResponse(
-                status_code=status.HTTP_403_FORBIDDEN,
+                status_code=status.HTTP_202_ACCEPTED,
                 content={
                     "message": "Profile incomplete. Please complete your profile.",
                     "user_id": user.id,
