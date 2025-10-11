@@ -14,7 +14,7 @@ def get_current_user(request: Request):
     Extracts the user ID from the JWT token in the request headers.
     This function is used as a dependency in FastAPI routes to ensure that the user is authorized.
     """
-    logger.info(f"Headers: {request.headers}")
+     # logger.info(f"Headers: {request.headers}")
     logger.info(f"Authorization Header: {request.headers.get('Authorization')}")
 
     
@@ -29,7 +29,8 @@ def get_current_user(request: Request):
     token = auth_header.split(" ")[1]
     try:
         payload = jwt.decode(token, "1234", algorithms=["HS256"])
-        user_id: str = payload.get("sub")
+        logger.info(f"Payload! {payload}")
+        user_id: str = payload.get("user_id")
         if user_id is None:
             raise JWTError("User ID not found in token")
         return user_id

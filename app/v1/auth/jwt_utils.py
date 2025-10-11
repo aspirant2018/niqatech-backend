@@ -6,7 +6,7 @@ ALGORITHM = os.getenv("ALGORITHM")  # Use a secure algorithm
 
 
 # Function to generate a JWT token
-def create_access_token(data):
+async def create_access_token(data):
     """
     Generate a JWT token for the authenticated user.
     This is a placeholder function; implement JWT generation logic here.
