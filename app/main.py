@@ -23,6 +23,11 @@ from contextlib import asynccontextmanager
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance
 
+from app.database.database import Base, engine
+from app.database import models  # make sure all models are imported here
+
+
+
 # Qdrant client
 qdrant_client = QdrantClient(
     host="localhost",
@@ -35,6 +40,24 @@ COLLECTIONS = {
     "document_embeddings": VectorParams(size=384, distance=Distance.DOT),
 }
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ---- Startup ----
+    logging.info("Starting up and initializing...")
+
+    _ = models.User()
+    _ = models.UploadedFile()
+
+    try:
+        logging.info("Creating database and tables...")
+        Base.metadata.create_all(bind=engine)
+        logging.info("Done.")
+        yield
+    except Exception as e:
+        logging.error(f"Error during startup: {e}")
+        raise e
+
+"""
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # ---- Startup ----
@@ -53,9 +76,7 @@ async def lifespan(app: FastAPI):
 
     # ---- Shutdown ----
     print("🔻 Shutting down app...")
-
-
-
+"""
 logger = logging.getLogger("__main.py__")
 
 
@@ -80,7 +101,7 @@ def custom_openapi():
     return app.openapi_schema
 
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 app.openapi = custom_openapi
 
 
