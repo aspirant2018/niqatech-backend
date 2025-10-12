@@ -21,6 +21,7 @@ import uuid
 from datetime import datetime
 import datetime
 from datetime import datetime
+from sqlalchemy.exc import IntegrityError
 
 logging.basicConfig(
     level=logging.INFO,
@@ -67,7 +68,30 @@ async def verify_google_token(token: TokenData):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid Google token"
         )
+def create_user(id: str, email: str, password:str | None, auth_provider: str, db: Session):
     
+    hash_password = get_password_hash(password) if password else None
+    
+    try: 
+        new_user = User(
+            id=id,
+            email=email,
+            hash_password=hash_password,
+            auth_provider=auth_provider
+        )
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        return new_user
+    
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="User already exists")
+    except Exception as e:
+        db.rollback()
+        logger.exception("Error creating user")
+        raise HTTPException(status_code=500, detail="Internal server error")   
+     
 @router.post("/google/signup", response_model=SignUpResponse)
 async def signup(token_data: TokenData, db: Session = Depends(get_db)):
     """ Authenticate user via Google OAuth token."""
@@ -89,17 +113,7 @@ async def signup(token_data: TokenData, db: Session = Depends(get_db)):
     logger.info(f"User with ID {google_user['user_id']} not found in the database.")
     
     try:
-        new_user = User(
-                    id=google_user['user_id'],
-                    email=google_user['email'],
-                    hash_password=None, # Password can be set later via algorithma password reset mechanism
-                    auth_provider= "google"
-                    )         
-            
-        db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
-
+        new_user = create_user(id=google_user['user_id'], email=google_user['email'], password=None, auth_provider="google", db=db)
         logger.info(f"New user created with ID {new_user.id} and email {new_user.email}. password: {new_user.hash_password}")
         access_token = await create_access_token(google_user)
 
@@ -171,6 +185,8 @@ async def google_login(token_data: TokenData, db: Session = Depends(get_db)):
 
 
 
+
+
 @router.post("/signup", response_model=SignUpResponse)
 async def local_signup(data: LocalSignUp, db: Session = Depends(get_db)):
     if get_user_by_email(db, data.email):
@@ -178,25 +194,8 @@ async def local_signup(data: LocalSignUp, db: Session = Depends(get_db)):
             status_code=status.HTTP_409_CONFLICT,
             content={"message": "User already exists"}
         )
-    
-    new_user = User(
-        id = uuid.uuid4().hex,
-        email=data.email,
-        hash_password=get_password_hash(data.password),   
-        auth_provider="local"
-    )
-
-    logger.info(f"Creating user with email: {new_user.email}, ID: {new_user.id}, Password: {new_user.hash_password}")
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-
-    payload = {
-            'user_id': new_user.id,
-            'email': new_user.email,
-        }
-
-    access_token = await create_access_token(payload)
+    new_user = create_user(id=uuid.uuid4().hex, email=data.email, password=data.password, auth_provider="local", db=db)
+    access_token = await create_access_token({"user_id": new_user.id, "email": new_user.email})
 
     # In a real application, send a verification email here
     return {

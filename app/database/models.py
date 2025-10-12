@@ -36,7 +36,12 @@ class User(Base):
     last_name = Column(String, nullable=True)
     school_name = Column(String, nullable=True)
     academic_level = Column(Enum(AcademicLevelEnum), nullable=True)
-    city = Column(String, nullable=True)
+    
+    city = Column(String, nullable=True) # City would be replaced by the following three fields
+    #wilaya = Column(String, nullable=True)
+    #daira = Column(String, nullable=True)
+    #commune = Column(String, nullable=True)
+
     subject = Column(String, nullable=True)
     
     # Timestamps
